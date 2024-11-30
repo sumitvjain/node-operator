@@ -40,7 +40,6 @@ class NodeOperator(QWidget):
 
         self.btn_load = QPushButton('Load Selected')
         self.btn_load.setIcon(QPixmap(os.path.join(icons_dir_path, 'load_icon.png')))
-#        self.btn_load.setMinimumWidth(80)
 
         self.btn_add = QPushButton('Add')
         self.btn_add.setIcon(QPixmap(os.path.join(icons_dir_path, 'add_icon')))

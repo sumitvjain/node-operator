@@ -1,5 +1,7 @@
+
 from PySide2.QtWidgets import QWidget, QApplication, QTableWidget,QHeaderView,QFrame, QHBoxLayout, QVBoxLayout, QSizePolicy,QTableWidgetItem, QSpacerItem, QLabel, QLineEdit, QComboBox, QCheckBox, QPushButton
 from PySide2.QtGui import QPixmap, Qt
+from PySide2.QtCore import QSize
 import sys, os
 import nuke
 from pprint import pprint
@@ -40,6 +42,8 @@ class NodeOperator(QWidget):
 
         self.btn_load = QPushButton('Load Selected')
         self.btn_load.setIcon(QPixmap(os.path.join(icons_dir_path, 'load_icon.png')))
+#        self.btn_load.setMinimumWidth(80)
+        
 
         self.btn_add = QPushButton('Add')
         self.btn_add.setIcon(QPixmap(os.path.join(icons_dir_path, 'add_icon')))
@@ -90,6 +94,8 @@ class NodeOperator(QWidget):
         font_spacer = QSpacerItem(50, 5, QSizePolicy.Maximum, QSizePolicy.Expanding)
         self.font_combo = QComboBox()
         self.btn_bold = QPushButton('bold')
+        self.btn_bold.setIconSize(QSize(200, 200))
+        
         self.btn_italic = QPushButton('italic')
 
         self.font_size = QLineEdit('11')
@@ -148,6 +154,7 @@ class NodeOperator(QWidget):
 
                 if knob.name() == 'colorspace':
                     self.nodes_data[node_name]['colorspace'] = node['colorspace'].value()
+                    self.colorspace_conbo = QComboBox()
 
                 if knob.name() == 'localizationPolicy':
                     self.nodes_data[node_name]['localizationPolicy'] = node['localizationPolicy'].value()
@@ -194,15 +201,76 @@ class NodeOperator(QWidget):
             node_nm_widget = QTableWidgetItem(node_nm)
             self.table.setItem(row_index, 0, node_nm_widget)
 
-            if 'disable' in self.nodes_data[node_nm]:
-#                print('disable -- ', node_nm)
-                disable_widget = QTableWidgetItem(str(self.nodes_data[node_nm]['disable']))
-                self.table.setItem(row_index, 1, disable_widget)
+            if 'disable' in self.nodes_data[node_nm]:                
+                bln = self.nodes_data[node_nm]['disable']
+                disable_widget = QTableWidgetItem('Enabled')  
+                self.set_chekckbox(bln, disable_widget, row_index, 1)
+#                disable_widget.setFlags(Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsEnabled)
+#                if bln:
+#                    disable_widget.setCheckState(Qt.CheckState.Checked)  
+#                else:    
+#                    disable_widget.setCheckState(Qt.CheckState.Unchecked)  
+#                self.table.setItem(row_index, 1, disable_widget) 
+
+            if 'mix' in self.nodes_data[node_nm]:
+                mix_widget = QTableWidgetItem(str(self.nodes_data[node_nm]['mix']))
+                self.table.setItem(row_index, 2, mix_widget)
+
+            if 'label' in self.nodes_data[node_nm]:
+                label_widget = QTableWidgetItem(str(self.nodes_data[node_nm]['label']))
+                self.table.setItem(row_index, 3, label_widget)
+
+            if 'postage_stamp' in self.nodes_data[node_nm]:
+#                thumb_widget = QTableWidgetItem(str(self.nodes_data[node_nm]['postage_stamp']))
+#                self.table.setItem(row_index, 4, thumb_widget)
+                bln = self.nodes_data[node_nm]['postage_stamp']
+                disable_widget = QTableWidgetItem('Enabled')  
+                self.set_chekckbox(bln, disable_widget, row_index, 4)
 
             if 'colorspace' in self.nodes_data[node_nm]:
-#                print('colorspace  -- ', node_nm)
-                colorspace_widget = QTableWidgetItem(str(self.nodes_data[node_nm]['colorspace']))
-                self.table.setItem(row_index, 5, colorspace_widget)
+#                colorspace_widget = QTableWidgetItem(str(self.nodes_data[node_nm]['colorspace']))
+#                self.table.setItem(row_index, 5, colorspace_widget)
+#                self.colorspace_combobox = QComboBox()                
+#                values = nuke.toNode(node_nm)['colorspace'].values()
+#                self.colorspace_combobox.addItems(values)
+#                self.table.setCellWidget(row_index, 5, self.colorspace_combobox)
+                self.set_combo_companies(node_nm, 'colorspace', row_index, 5)
+
+            if 'localizationPolicy' in self.nodes_data[node_nm]:
+#                localize_widget = QTableWidgetItem(str(self.nodes_data[node_nm]['localizationPolicy']))
+#                self.table.setItem(row_index, 6, localize_widget)
+                self.set_combo_companies(node_nm, 'localizationPolicy', row_index, 6)
+
+            if 'bookmark' in self.nodes_data[node_nm]:
+                bookmark_widget = QTableWidgetItem(str(self.nodes_data[node_nm]['bookmark']))
+                self.table.setItem(row_index, 7, bookmark_widget)
+
+            if 'hide_input' in self.nodes_data[node_nm]:
+#                hide_input_widget = QTableWidgetItem(str(self.nodes_data[node_nm]['hide_input']))
+#                self.table.setItem(row_index, 8, hide_input_widget)
+                bln = self.nodes_data[node_nm]['hide_input']
+                hide_input_widget = QTableWidgetItem('Enabled')  
+                self.set_chekckbox(bln, hide_input_widget, row_index, 8)
+
+            if 'lifetimeStart' in self.nodes_data[node_nm]:
+                lifetime_widget = QTableWidgetItem(str(self.nodes_data[node_nm]['lifetimeStart']))
+                self.table.setItem(row_index, 9, lifetime_widget)
+
+    def set_combo_companies(self, node_nm, knob_nm, row_index, col):
+            self.colorspace_combobox = QComboBox()                
+            values = nuke.toNode(node_nm)[knob_nm].values()
+            self.colorspace_combobox.addItems(values)
+            self.table.setCellWidget(row_index, col, self.colorspace_combobox)
+
+    def set_chekckbox(self, bln, item_widget, row_index, col):
+
+        item_widget.setFlags(Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsEnabled)
+        if bln:
+            item_widget.setCheckState(Qt.CheckState.Checked)  
+        else:    
+            item_widget.setCheckState(Qt.CheckState.Unchecked)  
+        self.table.setItem(row_index, col, item_widget)
+
 #            print('--'*10)
 
 #            for key in b.keys():
@@ -257,12 +325,5 @@ def main():
     window.show()
 #    sys.exit(app.exec_())
 
-# if __name__ == '__main__':
-#     main()
-
-############################################################################
-
-
-
-
-
+if __name__ == '__main__':
+    main()

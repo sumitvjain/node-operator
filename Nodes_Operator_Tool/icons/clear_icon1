@@ -3,10 +3,11 @@
 <svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
 	 viewBox="0 0 512 512" style="enable-background:new 0 0 512 512;" xml:space="preserve">
 <style type="text/css">
-	.st0{fill-rule:evenodd;clip-rule:evenodd;fill:#1D1D1D;}
+	.st0{fill:#333333;}
 </style>
-<g>
-	<polygon class="st0" points="512,51.57 460.43,0 256,204.46 51.57,0 0,51.57 204.43,256 0,460.46 51.57,512 256,307.57 460.43,512 
-		512,460.46 307.57,256 	"/>
+<g id="XMLID_6_">
+	<path id="XMLID_11_" class="st0" d="M455.8,356.6l30.2-23.8l-36.6-36.6L419.2,320L455.8,356.6z M444.8,236.8l42.1-32.9L256.5,25.6
+		l-74.1,57.6l201.1,201.1L444.8,236.8z M33.4,0L0.5,32.9l107.9,107.9l-82.3,64l41.1,32l189.3,145.4l53-41.1l36.6,36.6l-89.6,69.5
+		L68.1,300.8l-41.1,32L256.5,512l126.2-97.8l96.9,96l32-32.9L33.4,0z"/>
 </g>
 </svg>

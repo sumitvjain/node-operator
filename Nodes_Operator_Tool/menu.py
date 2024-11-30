@@ -13,7 +13,7 @@ custom_widget = node_operator_tool.NodeOperator()
 # Register the pane as a Nuke pane
 nukescripts.registerWidgetAsPanel(
     "node_operator_tool.NodeOperator", 
-    "Node Operation", 
+    "Node Operator", 
     "uk.co.example.CustomPanel", 
     create=True
 )

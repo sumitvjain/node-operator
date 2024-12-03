@@ -1,13 +1,17 @@
-from PySide2.QtWidgets import QWidget, QApplication, QTableWidget,QHeaderView,QFrame, QHBoxLayout, QVBoxLayout, QSizePolicy,QTableWidgetItem, QSpacerItem, QLabel, QLineEdit, QComboBox, QCheckBox, QPushButton
-from PySide2.QtGui import QPixmap, Qt
-from PySide2.QtCore import QSize
+
+from PySide2.QtWidgets import QWidget, QApplication, QTableWidget, QHeaderView,QFrame, QHBoxLayout, QVBoxLayout, QSizePolicy,QTableWidgetItem, QSpacerItem, QLabel, QLineEdit, QComboBox, QCheckBox, QPushButton
+from PySide2.QtGui import QPixmap, QColor
+from PySide2.QtCore import QSize, Qt
 import sys, os
 import nuke
+import re
 from pprint import pprint
 window = None
 
 dir_path = os.path.dirname(__file__)
 icons_dir_path = os.path.join(dir_path, 'icons')
+
+
 
 
 class NodeOperator(QWidget):
@@ -32,6 +36,12 @@ class NodeOperator(QWidget):
         self.btn_add.clicked.connect(self.btn_add_clicked)
         self.btn_all.clicked.connect(self.btn_all_clicked)
         self.btn_clear.clicked.connect(self.btn_clear_clicked)
+        self.search_line_edit.textEdited.connect(self.edited_search_line)
+        self.font_size.textEdited.connect(self.changed_font_size)
+        self.font_combo.currentTextChanged.connect(self.font_changed)        
+        self.btn_color.clicked.connect(self.btn_color_clicked)
+        self.btn_bold.clicked.connect(self.btn_bold_clicked)
+
         
     def set_top_btn_widgets(self):
 
@@ -40,25 +50,26 @@ class NodeOperator(QWidget):
         self.search_line_edit.setMinimumWidth(75)
         self.search_line_edit.setPlaceholderText('Find Node')
 
-        self.btn_load = QPushButton('Load Selected')
+        self.btn_load = QPushButton(' Load Selected')
         self.btn_load.setIcon(QPixmap(os.path.join(icons_dir_path, 'load_icon.png')))
         self.btn_load.setIconSize(QSize(13, 13))
-#        self.btn_load.setMinimumWidth(80)
 
-        self.btn_add = QPushButton('Add')
+        self.btn_add = QPushButton(' Add')
         self.btn_add.setIcon(QPixmap(os.path.join(icons_dir_path, 'add_icon')))
         self.btn_add.setIconSize(QSize(13, 13))
         self.btn_add.setEnabled(False)
 
-        self.btn_all = QPushButton('Load All')
+        self.btn_all = QPushButton(' Load All')
         self.btn_all.setIcon(QPixmap(os.path.join(icons_dir_path, 'all_icon')))
         self.btn_all.setIconSize(QSize(13, 13))
+        rgba_style = f"rgba({101}, {175}, {225}, {64 / 255:.3f})"
+        self.btn_all.setStyleSheet(f"background-color: {rgba_style}; color: white;")
 
-        self.btn_refresh = QPushButton('Refresh')
+        self.btn_refresh = QPushButton(' Refresh')
         self.btn_refresh.setIcon(QPixmap(os.path.join(icons_dir_path, 'refresh_icon1')))
         self.btn_refresh.setIconSize(QSize(13, 13))
         
-        self.btn_clear = QPushButton('Clear All')
+        self.btn_clear = QPushButton(' Clear All')
         self.btn_clear.setIcon(QPixmap(os.path.join(icons_dir_path, 'clear_icon')))
         self.btn_clear.setIconSize(QSize(13, 13))    
 
@@ -97,11 +108,21 @@ class NodeOperator(QWidget):
         self.label_node_counts.setMinimumWidth(110)
 
         font_spacer = QSpacerItem(50, 5, QSizePolicy.Maximum, QSizePolicy.Expanding)
-        self.font_combo = QComboBox()
+        self.font_combo = QComboBox()        
+        fonts_data = nuke.getFonts()
+        all_fonts = []
+        for font_nm in fonts_data:
+           all_fonts.append(font_nm[0])
+        self.font_combo.addItems(all_fonts)
+        self.font_combo.setCurrentText('Verdana')
+
+
         self.btn_bold = QPushButton()
         self.btn_bold.setIcon(QPixmap(os.path.join(icons_dir_path, 'bold_icon1.png')))
         self.btn_bold.setIconSize(QSize(12, 12))
         self.btn_bold.setMaximumWidth(50)
+        self.btn_bold.setCheckable(True)
+        self.btn_bold.setChecked(False)
         
 
         self.btn_italic = QPushButton()
@@ -112,9 +133,9 @@ class NodeOperator(QWidget):
         self.font_size = QLineEdit('11')
         self.font_size.setMaximumWidth(30)
 
-        self.font_color = QPushButton('Color')
-        self.font_color.setIcon(QPixmap(os.path.join(icons_dir_path, 'tile_color_icon.png')))
-        self.font_color.setMaximumWidth(75)
+        self.btn_color = QPushButton('Color')
+        self.btn_color.setIcon(QPixmap(os.path.join(icons_dir_path, 'tile_color_icon.png')))
+        self.btn_color.setMaximumWidth(75)
 
         self.separator = QFrame()
         self.separator.setFrameShape(QFrame.VLine)
@@ -127,7 +148,7 @@ class NodeOperator(QWidget):
         self.fontHLay.addWidget(self.btn_italic)
         self.fontHLay.addWidget(self.font_size)
         self.fontHLay.addWidget(self.separator)
-        self.fontHLay.addWidget(self.font_color)
+        self.fontHLay.addWidget(self.btn_color)
 
         self.mainVlay.addLayout(self.fontHLay)
 
@@ -210,7 +231,6 @@ class NodeOperator(QWidget):
         # 'disable', 'mix', 'label', 'postage_stamp', 'colorspace', 'localizationPolicy', 'bookmark', 'hide_input', 'lifetimeStart'
 
         all_node_names = self.nodes_data.keys()
-        print('all_node_names -- ', all_node_names)
 
         sorted_all_node_names = sorted(all_node_names)
         for row_index, node_nm in enumerate(sorted_all_node_names):
@@ -230,6 +250,7 @@ class NodeOperator(QWidget):
             if 'mix' in self.nodes_data[node_nm]:
                 mix_widget = QTableWidgetItem(str(self.nodes_data[node_nm]['mix']))
                 self.table.setItem(row_index, 2, mix_widget)
+
 
             if 'label' in self.nodes_data[node_nm]:
                 label_widget = QTableWidgetItem(str(self.nodes_data[node_nm]['label']))
@@ -259,11 +280,44 @@ class NodeOperator(QWidget):
                 lifetime_widget = QTableWidgetItem(str(self.nodes_data[node_nm]['lifetimeStart']))
                 self.table.setItem(row_index, 9, lifetime_widget)
 
+#    def set_cur_table_item_read_only(self, row_index, col):
+#        read_item = self.table.item(row_index, col)
+#        print('read_item ----------- ', read_item)
+##        read_item.setFlags(read_item.flags() & ~Qt.ItemIsEditable)
+
+    def make_first_column_read_only(self):
+        
+        for row in range(self.table.rowCount()):
+#            read_item = self.table.item(row, 3)
+#            read_item.setFlags(read_item.flags() & ~Qt.ItemIsEditable)
+#            print('read_item ================== ', read_item)
+
+            for col in range(self.table.columnCount()):
+                if not col == 3:
+                    read_item = self.table.item(row, col)
+                    read_item.whatsThis
+                    # read_item.setFlags(read_item.flags() & ~Qt.ItemIsEditable)
+
+#                    read_item = self.table.item(row, col)
+##                    print('read item value -- ', read_item)
+#                    if read_item == None:
+#                        print(f'{row} - {col}')
+#                        read_item.setFlags(read_item.flags() & ~Qt.ItemIsEditable)
+#
+##                print('read item value -- ', read_item)
+#            print('=*='*25)
+
+
     def set_combo_companies(self, node_nm, knob_nm, row_index, col):
             self.colorspace_combobox = QComboBox()                
             values = nuke.toNode(node_nm)[knob_nm].values()
             self.colorspace_combobox.addItems(values)
             self.table.setCellWidget(row_index, col, self.colorspace_combobox)
+            
+            value = nuke.toNode(node_nm)[knob_nm].value()
+            index = self.colorspace_combobox.findText(str(value), Qt.MatchFixedString)
+            self.colorspace_combobox.setCurrentIndex(index)
+            
 
     def set_chekckbox(self, bln, item_widget, row_index, col):
 
@@ -273,7 +327,6 @@ class NodeOperator(QWidget):
         else:    
             item_widget.setCheckState(Qt.CheckState.Unchecked)  
         self.table.setItem(row_index, col, item_widget)
-
         
 
     def btn_load_clicked(self):
@@ -290,21 +343,21 @@ class NodeOperator(QWidget):
             nodes = nuke.selectedNodes()
             self.get_nodes_info(nodes)
             self.set_node_knobs_to_ui()
+            self.make_first_column_read_only()
         else:
             nuke.message('Please Select Nodes')
-
         self.btn_add.setEnabled(True)
-        print('row count --- ', self.table.rowCount())
 
 
-    def btn_add_clicked(self):
+    def btn_add_clicked(self):        
         nodes = nuke.selectedNodes()
         for index, node in enumerate(nodes):
             bln = self.check_node_in_table(node)
             if bln:
                 add_row = self.add_new_node(index, node)    
                 self.get_nodes_info([node])
-                self.set_node_knobs_to_ui(add_row)        
+                self.set_node_knobs_to_ui(add_row)  
+        self.make_first_column_read_only()      
 
     def check_node_in_table(self, node):
         all_node_names = []
@@ -324,6 +377,7 @@ class NodeOperator(QWidget):
         
 
     def btn_all_clicked(self):
+        self.btn_all.setEnabled(False)
         self.btn_clear_clicked()
 
         nodes_len = len(nuke.allNodes())
@@ -333,16 +387,80 @@ class NodeOperator(QWidget):
         self.get_nodes_info(nodes)
         self.set_node_knobs_to_ui()      
         self.btn_add.setEnabled(False)
-        print('row count --- ', self.table.rowCount())
+        self.make_first_column_read_only()
+        self.btn_all.setEnabled(True)
 
 
     def btn_clear_clicked(self):
         self.table.clearContents()
         self.btn_add.setEnabled(False)
-        print('row count --- ', self.table.rowCount())
-        
-        
 
+        
+    def edited_search_line(self, text):
+        self.table.setCurrentItem(None)
+        if not text:
+            return
+        matching_items = self.table.findItems(text, Qt.MatchContains) 
+        if matching_items:
+            for item in matching_items:
+                item.setSelected(True)
+
+    def changed_font_size(self, size):
+        if not size:
+            return
+
+        nodes_len = len(nuke.selectedNodes())
+        if nodes_len:
+            for node in nuke.selectedNodes():
+                 node['note_font_size'].setValue(int(size))
+        else:
+            nuke.message('Please select node')
+
+        
+    def btn_color_clicked(self):
+        nodes_len = len(nuke.selectedNodes())
+        if nodes_len:
+            usr_sel_color = nuke.getColor() 
+            if usr_sel_color: 
+                for node in nuke.selectedNodes():
+                    node['tile_color'].setValue(usr_sel_color)     
+        else:
+            nuke.message('Please select node')
+
+    def font_changed(self, font_nm):
+        if not font_nm:
+            return
+
+        nodes_len = len(nuke.selectedNodes())
+        if nodes_len:
+            for node in nuke.selectedNodes():
+                 node['note_font'].setValue(font_nm)
+        else:
+            nuke.message('Please select node')
+
+    def btn_bold_clicked(self):
+        nodes_len = len(nuke.selectedNodes())
+        if nodes_len:
+            if self.btn_bold.isChecked():
+                self.update_text_pattern('bold')
+            else:
+                self.update_text_pattern()
+        else:
+            nuke.message('Please select node')
+
+    def update_text_pattern(self, bold=None):
+        for node in nuke.selectedNodes():
+            label_text = node['label'].value()    
+            pattern = r"</?b>"
+            cleaned_string = re.sub(pattern, "", label_text) 
+
+            if bold:
+                bold_text = f"<b>{cleaned_string}</b>"
+                node['label'].setValue('')
+                node['label'].setValue(bold_text)
+            else:
+                node['label'].setValue('')
+                node['label'].setValue(cleaned_string)
 
 
 def main():
@@ -356,17 +474,3 @@ if __name__ == '__main__':
     main()
 
 ############################################################################
-
-
-
-
-
-
-
-
-
-
-
-
-
-

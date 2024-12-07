@@ -1,6 +1,5 @@
-
 from PySide2.QtWidgets import QWidget, QApplication, QTableWidget, QHeaderView,QFrame, QHBoxLayout, QVBoxLayout, QSizePolicy,QTableWidgetItem, QSpacerItem, QLabel, QLineEdit, QComboBox, QCheckBox, QPushButton
-from PySide2.QtGui import QPixmap, QColor
+from PySide2.QtGui import QPixmap, QColor, QFont
 from PySide2.QtCore import QSize, Qt
 import sys, os
 import nuke
@@ -24,9 +23,11 @@ class NodeOperator(QWidget):
         self.nodes_data = {}
         self.headers = None
 
+        self.set_ui_header()
         self.set_top_btn_widgets()
-        self.add_table()
         self.add_font_widget()
+        self.add_table()
+        
 
         self.init()
 
@@ -41,7 +42,39 @@ class NodeOperator(QWidget):
         self.font_combo.currentTextChanged.connect(self.font_changed)        
         self.btn_color.clicked.connect(self.btn_color_clicked)
         self.btn_bold.clicked.connect(self.btn_bold_clicked)
+        self.btn_italic.clicked.connect(self.btn_italic_clicked)
+        self.table.cellChanged.connect(self.on_cell_changed)
 
+    def set_ui_header(self):
+        self.headerHlay = QHBoxLayout()
+
+        # headerSpacer1 = QSpacerItem(100, 2, QSizePolicy.Maximum)
+        horizontalSpacer1 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+
+        headerLabel = QLabel('NODE OPERATOR')
+        header_font = QFont()
+        header_font.setBold(True)
+        header_font.setPointSize(14)
+        headerLabel.setFont(header_font)
+        headerLabel.setStyleSheet("color: #555555;")
+        
+        description_label = QLabel(" -  Streamline node management")
+        description_font = QFont()
+        description_font.setItalic(True)
+        description_font.setPointSize(10) 
+        description_label.setFont(description_font)
+        description_label.setStyleSheet("color: #696969;")
+
+        # headerSpacer2 = QSpacerItem(100, 2, QSizePolicy.Maximum, QSizePolicy.Expanding)
+        # headerSpacer2 = QSpacerItem(100, 2, QSizePolicy.Maximum)
+        horizontalSpacer2 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+
+        self.headerHlay.addSpacerItem(horizontalSpacer1)
+        self.headerHlay.addWidget(headerLabel)
+        self.headerHlay.addWidget(description_label)
+        self.headerHlay.addSpacerItem(horizontalSpacer2)
+
+        self.mainVlay.addLayout(self.headerHlay)
         
     def set_top_btn_widgets(self):
 
@@ -81,26 +114,6 @@ class NodeOperator(QWidget):
         self.hlay_1.addWidget(self.btn_clear)
        
         self.mainVlay.addLayout(self.hlay_1)
-        
-    def add_table(self):
-
-        # self.tableVLay = QVBoxLayout()
-        self.table = QTableWidget()
-        self.table.setColumnCount(10)
-        self.headers = ['Node Name', 'Disabled', 'Mix', 'Label', 'Thumbnail', 'ColorSpace', 'Localized', 'Favorite', 'Hide Input', 'Lifetime']
-        self.table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-
-        # set table header with column count
-        self.table.setColumnCount(len(self.headers))
-        self.table.setHorizontalHeaderLabels(self.headers)
-
-        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
-        self.table.horizontalHeader().setStretchLastSection(True)    
-
-        self.table.verticalHeader().setStretchLastSection(True)
-        self.table.verticalHeader().setSectionResizeMode(QHeaderView.Stretch)
-
-        self.mainVlay.addWidget(self.table, stretch=1)
 
     def add_font_widget(self):
         self.fontHLay = QHBoxLayout()
@@ -117,7 +130,7 @@ class NodeOperator(QWidget):
         self.font_combo.setCurrentText('Verdana')
 
 
-        self.btn_bold = QPushButton()
+        self.btn_bold = QPushButton('Bold')
         self.btn_bold.setIcon(QPixmap(os.path.join(icons_dir_path, 'bold_icon1.png')))
         self.btn_bold.setIconSize(QSize(12, 12))
         self.btn_bold.setMaximumWidth(50)
@@ -125,10 +138,12 @@ class NodeOperator(QWidget):
         self.btn_bold.setChecked(False)
         
 
-        self.btn_italic = QPushButton()
+        self.btn_italic = QPushButton('Italic')
         self.btn_italic.setIcon(QPixmap(os.path.join(icons_dir_path, 'italic_icon1.png')))
         self.btn_italic.setIconSize(QSize(12, 12))
         self.btn_italic.setMaximumWidth(75)
+        self.btn_italic.setCheckable(True)
+        self.btn_italic.setChecked(False)
 
         self.font_size = QLineEdit('11')
         self.font_size.setMaximumWidth(30)
@@ -151,6 +166,36 @@ class NodeOperator(QWidget):
         self.fontHLay.addWidget(self.btn_color)
 
         self.mainVlay.addLayout(self.fontHLay)
+        
+    def add_table(self):
+
+        # self.tableVLay = QVBoxLayout()
+        self.table = QTableWidget()
+        self.table.setColumnCount(10)
+        self.headers = ['Node Name', 'Disabled', 'Mix', 'Label', 'Thumbnail', 'ColorSpace', 'Localized', 'Favorite', 'Hide Input', 'Lifetime']
+        self.table.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+
+        # set table header with column count
+        self.table.setColumnCount(len(self.headers))
+        self.table.setHorizontalHeaderLabels(self.headers)
+
+#        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
+#        self.table.horizontalHeader().setStretchLastSection(True)    
+
+        self.table.horizontalHeader().setStretchLastSection(True) 
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)  
+
+
+#        self.table.verticalHeader().setStretchLastSection(False)
+        self.table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
+
+        self.mainVlay.addWidget(self.table, stretch=1)
+
+        print('=*='*10)
+        for i in dir(self.table):
+            print(i)
+        print('=*='*10)
+
 
     def set_row_count_to_ui(self, nodes_len):
 #        self.table.setRowCount(len(nuke.selectedNodes()))
@@ -243,7 +288,10 @@ class NodeOperator(QWidget):
 
             if 'disable' in self.nodes_data[node_nm]:                
                 bln = self.nodes_data[node_nm]['disable']
-                disable_widget = QTableWidgetItem('Enabled')  
+                if bln:
+                    disable_widget = QTableWidgetItem('Enabled')
+                else:  
+                    disable_widget = QTableWidgetItem('Disabled') 
                 self.set_chekckbox(bln, disable_widget, row_index, 1)
 
 
@@ -257,8 +305,11 @@ class NodeOperator(QWidget):
                 self.table.setItem(row_index, 3, label_widget)
 
             if 'postage_stamp' in self.nodes_data[node_nm]:
-                bln = self.nodes_data[node_nm]['postage_stamp']
-                disable_widget = QTableWidgetItem('Enabled')  
+                bln = self.nodes_data[node_nm]['postage_stamp']  # ['postage_stamp'].value()
+                if bln:
+                    disable_widget = QTableWidgetItem('Enabled')
+                else:  
+                    disable_widget = QTableWidgetItem('Disabled')
                 self.set_chekckbox(bln, disable_widget, row_index, 4)
 
             if 'colorspace' in self.nodes_data[node_nm]:
@@ -273,40 +324,72 @@ class NodeOperator(QWidget):
 
             if 'hide_input' in self.nodes_data[node_nm]:
                 bln = self.nodes_data[node_nm]['hide_input']
-                hide_input_widget = QTableWidgetItem('Enabled')  
+#                hide_input_widget = QTableWidgetItem('Enabled')  
+                if bln:
+                    hide_input_widget = QTableWidgetItem('Enabled')
+                else:  
+                    hide_input_widget = QTableWidgetItem('Disabled')
                 self.set_chekckbox(bln, hide_input_widget, row_index, 8)
 
             if 'lifetimeStart' in self.nodes_data[node_nm]:
                 lifetime_widget = QTableWidgetItem(str(self.nodes_data[node_nm]['lifetimeStart']))
                 self.table.setItem(row_index, 9, lifetime_widget)
 
-#    def set_cur_table_item_read_only(self, row_index, col):
-#        read_item = self.table.item(row_index, col)
-#        print('read_item ----------- ', read_item)
-##        read_item.setFlags(read_item.flags() & ~Qt.ItemIsEditable)
+            self.table.setRowHeight(row_index, (row_index+2) * 16)
+
+#    def on_checkbox_changed(self, row, column, state):
+#        print('state -- ', dir(state))
+#        print(f"Checkbox in row {row + 1} changed to: {'Checked' if state == Qt.Checked else 'Unchecked'} --- {column}")            
+
+    def set_chekckbox(self, bln, item_widget, row_index, col):
+
+        item_widget.setFlags(Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsEnabled)
+        if bln:
+            item_widget.setCheckState(Qt.CheckState.Checked)  
+        else:    
+            item_widget.setCheckState(Qt.CheckState.Unchecked)  
+        self.table.setItem(row_index, col, item_widget)
+
+#        checkbox_widget = QCheckBox()
+#        checkbox_widget.stateChanged.connect(lambda state, r=row_index: self.on_checkbox_changed(r, col, state))
+#        self.table.setCellWidget(row_index, col, checkbox_widget)
+
+
+    def update_node_value(self, nod_nm, c_row, c_col, c_val):
+        nuke_node = nuke.toNode(nod_nm)
+#        print('c_col type -- ', type(c_col))
+#        print('not name   ', nuke_node.name())
+        if c_col == 0:
+            pass
+        elif c_col == 1:
+            pass
+        elif c_col == 2: # mix
+            if nuke_node['mix']:
+                nuke_node['mix'].setValue(float(c_val))
+        else:
+            pass     
+
+    def on_cell_changed(self, row, column):
+        item = self.table.item(row, column)
+        if item:
+            changed_row = row
+            changed_column =  column
+            changed_value = item.text()
+            changed_val_nod_nm = self.table.item(row, 0).text()
+
+#            print('changed_val_nod_nm -- ', changed_val_nod_nm)
+#            print('changed_row -- ', changed_row)
+#            print('changed_column -- ', changed_column)
+#            print('changed_value -- ', changed_value)
+            self.update_node_value(changed_val_nod_nm, changed_row, changed_column, changed_value)
+
+
 
     def make_first_column_read_only(self):
         
         for row in range(self.table.rowCount()):
-#            read_item = self.table.item(row, 3)
-#            read_item.setFlags(read_item.flags() & ~Qt.ItemIsEditable)
-#            print('read_item ================== ', read_item)
-
-            for col in range(self.table.columnCount()):
-                if not col == 3:
-                    read_item = self.table.item(row, col)
-                    read_item.whatsThis
-                    # read_item.setFlags(read_item.flags() & ~Qt.ItemIsEditable)
-
-#                    read_item = self.table.item(row, col)
-##                    print('read item value -- ', read_item)
-#                    if read_item == None:
-#                        print(f'{row} - {col}')
-#                        read_item.setFlags(read_item.flags() & ~Qt.ItemIsEditable)
-#
-##                print('read item value -- ', read_item)
-#            print('=*='*25)
-
+            read_item = self.table.item(row, 0)
+            read_item.setFlags(read_item.flags() & ~Qt.ItemIsEditable)
 
     def set_combo_companies(self, node_nm, knob_nm, row_index, col):
             self.colorspace_combobox = QComboBox()                
@@ -317,17 +400,6 @@ class NodeOperator(QWidget):
             value = nuke.toNode(node_nm)[knob_nm].value()
             index = self.colorspace_combobox.findText(str(value), Qt.MatchFixedString)
             self.colorspace_combobox.setCurrentIndex(index)
-            
-
-    def set_chekckbox(self, bln, item_widget, row_index, col):
-
-        item_widget.setFlags(Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsEnabled)
-        if bln:
-            item_widget.setCheckState(Qt.CheckState.Checked)  
-        else:    
-            item_widget.setCheckState(Qt.CheckState.Unchecked)  
-        self.table.setItem(row_index, col, item_widget)
-        
 
     def btn_load_clicked(self):
 
@@ -409,58 +481,111 @@ class NodeOperator(QWidget):
         if not size:
             return
 
-        nodes_len = len(nuke.selectedNodes())
-        if nodes_len:
-            for node in nuke.selectedNodes():
-                 node['note_font_size'].setValue(int(size))
-        else:
-            nuke.message('Please select node')
+        sel_items = self.table.selectedItems()
+        sel_item_nm = []
 
+        if sel_items:
+            for item in sel_items:
+                sel_item_nm.append(item.text())
+    
+            if sel_item_nm: 
+                for node_nm in sel_item_nm:
+                    if nuke.toNode(node_nm):
+                        nuke.toNode(node_nm)['note_font_size'].setValue(int(size))
+            else:
+                nuke.message('Please select Node Names in Node Operator UI')
         
     def btn_color_clicked(self):
-        nodes_len = len(nuke.selectedNodes())
-        if nodes_len:
+        sel_items = self.table.selectedItems()
+        sel_item_nm = []
+
+        if sel_items:
+            for item in sel_items:
+                sel_item_nm.append(item.text())
+    
             usr_sel_color = nuke.getColor() 
+
             if usr_sel_color: 
-                for node in nuke.selectedNodes():
-                    node['tile_color'].setValue(usr_sel_color)     
-        else:
-            nuke.message('Please select node')
+                for node_nm in sel_item_nm:
+                    if nuke.toNode(node_nm):
+                        nuke.toNode(node_nm)['tile_color'].setValue(usr_sel_color) 
+
 
     def font_changed(self, font_nm):
         if not font_nm:
             return
 
-        nodes_len = len(nuke.selectedNodes())
-        if nodes_len:
-            for node in nuke.selectedNodes():
-                 node['note_font'].setValue(font_nm)
-        else:
-            nuke.message('Please select node')
+        sel_items = self.table.selectedItems()
+        sel_item_nm = []
+
+        if sel_items:
+            for item in sel_items:
+                sel_item_nm.append(item.text())
+    
+            if sel_item_nm: 
+                for node_nm in sel_item_nm:
+                    if nuke.toNode(node_nm):
+                        nuke.toNode(node_nm)['note_font'].setValue(font_nm)
+            else:
+                nuke.message('Please select Node Names in Node Operator UI')
+
+    def update_text_pattern(self, bold=None, sel_item_nm=None):
+
+        for node_nm in sel_item_nm:
+            if nuke.toNode(node_nm):     
+                if bold:
+                    nuke.toNode(node_nm)['note_font'].setValue('bold')
+                else:
+                    nuke.toNode(node_nm)['note_font'].setValue("")
 
     def btn_bold_clicked(self):
-        nodes_len = len(nuke.selectedNodes())
-        if nodes_len:
-            if self.btn_bold.isChecked():
-                self.update_text_pattern('bold')
-            else:
-                self.update_text_pattern()
-        else:
-            nuke.message('Please select node')
+        sel_items = self.table.selectedItems()
+        sel_item_nm = []
 
-    def update_text_pattern(self, bold=None):
-        for node in nuke.selectedNodes():
-            label_text = node['label'].value()    
-            pattern = r"</?b>"
-            cleaned_string = re.sub(pattern, "", label_text) 
+        if sel_items:
+            for item in sel_items:
+                sel_item_nm.append(item.text())
 
-            if bold:
-                bold_text = f"<b>{cleaned_string}</b>"
-                node['label'].setValue('')
-                node['label'].setValue(bold_text)
+            if sel_item_nm: 
+                if self.btn_bold.isChecked():
+                    self.update_text_pattern(bold='bold', sel_item_nm=sel_item_nm)
+                else:
+                    self.update_text_pattern(bold=None, sel_item_nm=sel_item_nm)
             else:
-                node['label'].setValue('')
-                node['label'].setValue(cleaned_string)
+                nuke.message('Please select Node Names in Node Operator UI')
+
+
+    def update_italic_pattern(self, italic=None, sel_item_nm=None):
+
+        for node_nm in sel_item_nm:
+            if nuke.toNode(node_nm):     
+                if italic:
+                    nuke.toNode(node_nm)['note_font'].setValue('italic')
+                    print('pressed for italic')
+                else:
+                    print('released for italic')
+                    nuke.toNode(node_nm)['note_font'].setValue("")
+
+    def btn_italic_clicked(self):
+        sel_items = self.table.selectedItems()
+        sel_item_nm = []
+
+        if sel_items:
+            for item in sel_items:
+                sel_item_nm.append(item.text())
+
+            if sel_item_nm: 
+                if self.btn_italic.isChecked():
+                    self.update_italic_pattern(italic='italic', sel_item_nm=sel_item_nm)            
+                else:
+                     self.update_italic_pattern(italic=None, sel_item_nm=sel_item_nm)            
+            else:
+                nuke.message('Please select Node Names in Node Operator UI')
+
+
+    
+            
+
 
 
 def main():
@@ -474,3 +599,46 @@ if __name__ == '__main__':
     main()
 
 ############################################################################
+
+
+
+
+
+#n = nuke.selectedNode()
+#
+#n_node_font = n['note_font']
+#n_node_font.setValue('bold')
+#n_node_font.setValue('')
+#
+#
+#import nuke
+#
+## Get the selected node
+#n = nuke.selectedNode()
+#
+## Check if the selected node has the 'note_font' knob
+#if 'note_font' in n.knobs():
+#    # Set the note font to italic
+#    # Available font styles can include "italic", "bold", etc., depending on the environment
+#    n['note_font'].setValue("italic")
+#    # Set a label as an example
+#    n['label'].setValue("This is an italic label")
+#    print("Node label set to italic.")
+#else:
+#    print("The selected node does not have a 'note_font' knob.")
+#
+
+
+
+#a = ['ItemType', 'Type', 'UserType', '__class__', '__delattr__', '__dict__', '__dir__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__', '__gt__', '__hash__', '__init__', '__init_subclass__', '__le__', '__lshift__', '__lt__', '__module__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__rlshift__', '__rrshift__', '__rshift__', '__setattr__', '__sizeof__', '__str__', '__subclasshook__', 'background', 'backgroundColor', 'checkState', 'clone', 'column', 'data', 'flags', 'font', 'foreground', 'icon', 'isSelected', 'read', 'row', 'setBackground', 'setBackgroundColor', 'setCheckState', 'setData', 'setFlags', 'setFont', 'setForeground', 'setIcon', 'setSelected', 'setSizeHint', 'setStatusTip', 'setText', 'setTextAlignment', 'setTextColor', 'setToolTip', 'setWhatsThis', 'sizeHint', 'statusTip', 'tableWidget', 'text', 'textAlignment', 'textColor', 'toolTip', 'type', 'whatsThis', 'write']
+#
+#
+#for i in a:
+#    print(i)
+
+#
+#n = nuke.selectedNode()
+#
+#n_post = n['postage_stamp'].value()
+#
+#n_post

@@ -1,9 +1,10 @@
-from PySide2.QtWidgets import QWidget, QApplication, QTableWidget, QHeaderView,QFrame, QHBoxLayout, QVBoxLayout, QSizePolicy,QTableWidgetItem, QSpacerItem, QLabel, QLineEdit, QComboBox, QCheckBox, QPushButton
+from PySide2.QtWidgets import QWidget, QApplication, QTableWidget, QHeaderView,QFrame,QAbstractItemView, QHBoxLayout, QVBoxLayout, QSizePolicy,QTableWidgetItem, QSpacerItem, QLabel, QLineEdit, QComboBox, QCheckBox, QPushButton
 from PySide2.QtGui import QPixmap, QColor, QFont
-from PySide2.QtCore import QSize, Qt
+from PySide2.QtCore import QSize, Qt, QRect
 import sys, os
 import nuke
 import re
+import ast
 from pprint import pprint
 window = None
 
@@ -23,6 +24,7 @@ class NodeOperator(QWidget):
 
         self.set_ui_header()
         self.set_top_btn_widgets()
+        # self.configure_multi_ops()
         self.add_font_widget()
         self.add_table()
         
@@ -44,7 +46,9 @@ class NodeOperator(QWidget):
         self.btn_italic.clicked.connect(self.btn_italic_clicked)
         self.table.cellChanged.connect(self.on_cell_changed)
         self.table.cellDoubleClicked.connect(self.on_cellDoubleClicked)
+        self.table.cellClicked.connect(self.cell_clicked)
         self.btn_refresh.clicked.connect(self.btn_refresh_clicked)
+        
         
 
     def set_ui_header(self):
@@ -82,6 +86,9 @@ class NodeOperator(QWidget):
         self.search_line_edit.setMinimumWidth(75)
         self.search_line_edit.setPlaceholderText('Find Node')
 
+        self.btn_export = QPushButton('Export')
+        self.btn_import = QPushButton('Import')
+
         self.btn_load = QPushButton(' Load Selected')
         self.btn_load.setIcon(QPixmap(os.path.join(icons_dir_path, 'load_icon.png')))
         self.btn_load.setIconSize(QSize(13, 13))
@@ -110,6 +117,8 @@ class NodeOperator(QWidget):
         self.btn_all_clear.setIconSize(QSize(13, 13))    
 
         self.hlay_1.addWidget(self.search_line_edit)
+        self.hlay_1.addWidget(self.btn_export)
+        self.hlay_1.addWidget(self.btn_import)
         self.hlay_1.addWidget(self.btn_load)
         self.hlay_1.addWidget(self.btn_add)
         self.hlay_1.addWidget(self.btn_all)
@@ -119,10 +128,51 @@ class NodeOperator(QWidget):
        
         self.mainVlay.addLayout(self.hlay_1)
 
+    # def configure_multi_ops(self):
+    #     self.multi_operation_HLay = QHBoxLayout()
+
+    #     self.btn_export = QPushButton('Export')
+    #     self.btn_import = QPushButton('Import')
+
+    #     multi_operation_spacer1 = QSpacerItem(2000, 10, QSizePolicy.Maximum)
+
+    #     self.ck_sel_on_off = QCheckBox('On/Off')
+    #     self.ck_sel_on_off.setChecked(False)
+    #     self.ck_sel_on_off.stateChanged.connect(self.on_off_state_changed)
+
+    #     self.ck_sel_thumbnail = QCheckBox('Thumbnail')
+    #     self.ck_sel_thumbnail.setChecked(False)
+
+    #     self.ck_sel_favorite = QCheckBox('Favorite')
+    #     self.ck_sel_favorite.setChecked(False)
+
+    #     self.ck_sel_hide_input = QCheckBox('Hide Input')
+    #     self.ck_sel_hide_input.setChecked(False)
+
+    #     multi_operation_spacer2 = QSpacerItem(2000, 10, QSizePolicy.Maximum)
+
+    #     self.cb_sel_colorspace = QComboBox()
+    #     self.cb_sel_localized = QComboBox()
+
+    #     self.multi_operation_HLay.addWidget(self.btn_export)
+    #     self.multi_operation_HLay.addWidget(self.btn_import)
+    #     self.multi_operation_HLay.addSpacerItem(multi_operation_spacer1)
+    #     self.multi_operation_HLay.addWidget(self.ck_sel_on_off)
+    #     self.multi_operation_HLay.addWidget(self.ck_sel_thumbnail)
+    #     self.multi_operation_HLay.addWidget(self.ck_sel_favorite)
+    #     self.multi_operation_HLay.addWidget(self.ck_sel_hide_input)
+    #     self.multi_operation_HLay.addSpacerItem(multi_operation_spacer2)
+    #     self.multi_operation_HLay.addWidget(self.cb_sel_colorspace)
+    #     self.multi_operation_HLay.addWidget(self.cb_sel_localized)
+        
+    #     self.mainVlay.addLayout(self.multi_operation_HLay)
+
     def add_font_widget(self):
         self.fontHLay = QHBoxLayout()
         self.label_nodes_added = QLabel('Nodes Added : ')    
         self.label_nodes_count = QLabel('')
+        self.label_nodes_selected_name = QLabel('Nodes Selected Name : ') 
+        self.label_sel_nods_nm = QLabel()
 
         font_spacer = QSpacerItem(2000, 10, QSizePolicy.Maximum)
         self.font_combo = QComboBox()        
@@ -133,14 +183,12 @@ class NodeOperator(QWidget):
         self.font_combo.addItems(all_fonts)
         self.font_combo.setCurrentText('Verdana')
 
-
         self.btn_bold = QPushButton('Bold')
         self.btn_bold.setIcon(QPixmap(os.path.join(icons_dir_path, 'bold_icon1.png')))
         self.btn_bold.setIconSize(QSize(12, 12))
         self.btn_bold.setMaximumWidth(50)
         self.btn_bold.setCheckable(True)
-        self.btn_bold.setChecked(False)
-        
+        self.btn_bold.setChecked(False)        
 
         self.btn_italic = QPushButton('Italic')
         self.btn_italic.setIcon(QPixmap(os.path.join(icons_dir_path, 'italic_icon1.png')))
@@ -162,6 +210,9 @@ class NodeOperator(QWidget):
 
         self.fontHLay.addWidget(self.label_nodes_added)
         self.fontHLay.addWidget(self.label_nodes_count)
+        self.fontHLay.addWidget(self.separator)
+        self.fontHLay.addWidget(self.label_nodes_selected_name)
+        self.fontHLay.addWidget(self.label_sel_nods_nm)
         self.fontHLay.addSpacerItem(font_spacer)
         self.fontHLay.addWidget(self.font_combo)
         self.fontHLay.addWidget(self.btn_bold)
@@ -185,6 +236,11 @@ class NodeOperator(QWidget):
 
         self.table.horizontalHeader().setStretchLastSection(True) 
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)  
+
+        # self.table.setSelectionMode(QAbstractItemView.MultiSelection)
+        # self.table.setSelectionBehavior(QAbstractItemView.SelectItems)
+
+        
 
 
         self.table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
@@ -338,34 +394,228 @@ class NodeOperator(QWidget):
   
             self.table.setRowHeight(row_index, (row_index+2) * 16)
 
-    def update_checkbox_status(self,nod_nm, row, column, checkbox, state):
-        if state == Qt.Checked:
-            checkbox.setText('Enabled')
-            if column == 1:
-                nuke.toNode(nod_nm)['disable'].setValue(True)
-            if column == 4:
-                nuke.toNode(nod_nm)['postage_stamp'].setValue(True)
-            if column == 7:
-                nuke.toNode(nod_nm)['bookmark'].setValue(True)
-            if column == 8:
-                nuke.toNode(nod_nm)['hide_input'].setValue(True)                
 
+    def cell_clicked(self):
+        
+        items = self.table.selectedItems()
+        if items:
+            if items[0].column() == 0:
+                sel_nods_nm = []
+                for index, item in enumerate(items):        
+                    # print(index, item.text())
+                    # print(item.column(), item.text())
+                    if item.column() == 0:
+                        sel_nods_nm.append(item.text())
+
+                self.label_sel_nods_nm.setText(f'{sel_nods_nm}')
+
+    def update_checkbox_status(self, nod_nm, row, column, checkbox, state):
+        print('checkbox -- ', checkbox)
+
+        if len(self.label_sel_nods_nm.text()) == 0:
+
+            if state == Qt.Checked:
+                checkbox.setText('Enabled')
+                checkbox.setChecked(True)
+                if column == 1:
+                    nuke.toNode(nod_nm)['disable'].setValue(True)
+                if column == 4:
+                    nuke.toNode(nod_nm)['postage_stamp'].setValue(True)
+                if column == 7:
+                    nuke.toNode(nod_nm)['bookmark'].setValue(True)
+                if column == 8:
+                    nuke.toNode(nod_nm)['hide_input'].setValue(True)                
+
+            else:
+                checkbox.setText('Disabled')
+                checkbox.setChecked(False)
+                # checkbox = QCheckBox('Disabled')
+                if column == 1:
+                    nuke.toNode(nod_nm)['disable'].setValue(False)
+                if column == 4:
+                    nuke.toNode(nod_nm)['postage_stamp'].setValue(False)
+                if column == 7:
+                    nuke.toNode(nod_nm)['bookmark'].setValue(False)
+                if column == 8:
+                    nuke.toNode(nod_nm)['hide_input'].setValue(False) 
+ 
         else:
-            checkbox.setText('Disabled')
-            if column == 1:
-                nuke.toNode(nod_nm)['disable'].setValue(False)
-            if column == 4:
-                nuke.toNode(nod_nm)['postage_stamp'].setValue(False)
-            if column == 7:
-                nuke.toNode(nod_nm)['bookmark'].setValue(False)
-            if column == 8:
-                nuke.toNode(nod_nm)['hide_input'].setValue(False)                  
+            nodes_nm_str = self.label_sel_nods_nm.text()
+            nods_nm_lst = ast.literal_eval(nodes_nm_str)
+
+            # print(nods_nm_lst, type(nods_nm_lst)) # ['Blur1', 'Blur10', 'Blur2', 'Blur5', 'Blur6']
+            # print('column -- ', column) # 1,4,7,8
+
+            # <PySide2.QtWidgets.QCheckBox(0x1d786e0d290) at 0x000001D782FC3980>
+            # <PySide2.QtWidgets.QCheckBox(0x1d78edaa270) at 0x000001D793F40800>
+
+            if nods_nm_lst:                
+                for nm in nods_nm_lst:
+
+                    item = self.table.findItems(nm, Qt.MatchExactly)
+                    row = item[0].row()
+                    checkbox_item = self.table.cellWidget(row, column)
+
+                    if state == Qt.Checked:
+                        checkbox_item.setText('Enabled')
+                        checkbox_item.setChecked(True)
+                        if column == 1:
+                            nuke.toNode(nod_nm)['disable'].setValue(True)
+                        if column == 4:
+                            nuke.toNode(nod_nm)['postage_stamp'].setValue(True)
+                        if column == 7:
+                            nuke.toNode(nod_nm)['bookmark'].setValue(True)
+                        if column == 8:
+                            nuke.toNode(nod_nm)['hide_input'].setValue(True)                
+
+                    else:
+                        checkbox_item.setText('Disabled')
+                        checkbox_item.setChecked(False)
+                        # checkbox_item = QCheckBox('Disabled')
+                        if column == 1:
+                            nuke.toNode(nod_nm)['disable'].setValue(False)
+                        if column == 4:
+                            nuke.toNode(nod_nm)['postage_stamp'].setValue(False)
+                        if column == 7:
+                            nuke.toNode(nod_nm)['bookmark'].setValue(False)
+                        if column == 8:
+                            nuke.toNode(nod_nm)['hide_input'].setValue(False) 
+
+
+
+
+
+
+
+
+
+
+
+
+########################################################################################
+        # print('nod_nm -- ', nod_nm)
+        # print('row -- ', row)
+        # print('column -- ', column)
+        # print('checkbox -- ', checkbox)
+        # print('state -- ', state)
+        
+        # print(self.label_sel_nods_nm)
+        # print(type(self.label_sel_nods_nm))
+        # print('label_sel_nods_nm -- ', self.label_sel_nods_nm.text(), len(self.label_sel_nods_nm.text()))
+        
+
+        # selected_items = self.table.selectedItems()
+        # print('selected_items -- ', selected_items)
+
+        # node_nm_row_dict = {}
+        # for item in selected_items:
+        #     row = item.row()
+        #     column = item.column()
+        #     if column == 0:
+        #         node_nm_row_dict[item.text()] = row, column
+        # pprint(node_nm_row_dict)
+        
+
+        # # nodes_nm = self.get_sel_ui_nods_nm()
+
+        # selected_items = self.table.selectedItems()
+        # print('selected_items -- ', selected_items)
+        # # nod_nm_lst = []
+        # node_nm_row_dict = {}
+        # for item in selected_items:
+        #     row = item.row()
+        #     column = item.column()
+
+        #     if column == 0:
+        #         # nod_nm_lst.append(item.text())
+        #         node_nm_row_dict[item.text()] = row
+        # pprint(node_nm_row_dict)
+
+        # if node_nm_row_dict:
+        #     for nod_nm in node_nm_row_dict.keys():   
+        #         _row = node_nm_row_dict[nod_nm]
+        #         print('_row -- ', _row)
+        #         print('column -- ', column)
+        #         table_widget = self.table.item(_row, column) 
+        #         # print('type -- ', table_widget.Type)
+        #         # print('checkState -- ', table_widget.checkState())
+        #         # print('data -- ', table_widget.data())
+        #         # print('text -- ', table_widget.text())
+
+        #         if state == Qt.Checked:
+        #             # checkbox.setText('Enabled')
+        #             # checkbox.setChecked(True)
+        #             # table_widget.setText('Enabled')
+        #             # table_widget.setChecked(True)
+        #             if column == 1:
+        #                 nuke.toNode(nod_nm)['disable'].setValue(True)
+        #             if column == 4:
+        #                 nuke.toNode(nod_nm)['postage_stamp'].setValue(True)
+        #             if column == 7:
+        #                 nuke.toNode(nod_nm)['bookmark'].setValue(True)
+        #             if column == 8:
+        #                 nuke.toNode(nod_nm)['hide_input'].setValue(True)                
+
+        #         else:
+        #             # checkbox.setText('Disabled')
+        #             # checkbox = QCheckBox('Disabled')
+        #             # table_widget.setText('Disabled')
+        #             # table_widget.setChecked(False)
+
+        #             if column == 1:
+        #                 nuke.toNode(nod_nm)['disable'].setValue(False)
+        #             if column == 4:
+        #                 nuke.toNode(nod_nm)['postage_stamp'].setValue(False)
+        #             if column == 7:
+        #                 nuke.toNode(nod_nm)['bookmark'].setValue(False)
+        #             if column == 8:
+        #                 nuke.toNode(nod_nm)['hide_input'].setValue(False)    
+        # else:
+        #     if state == Qt.Checked:
+        #         checkbox.setText('Enabled')
+        #         checkbox.setChecked(True)
+        #         if column == 1:
+        #             nuke.toNode(nod_nm)['disable'].setValue(True)
+        #         if column == 4:
+        #             nuke.toNode(nod_nm)['postage_stamp'].setValue(True)
+        #         if column == 7:
+        #             nuke.toNode(nod_nm)['bookmark'].setValue(True)
+        #         if column == 8:
+        #             nuke.toNode(nod_nm)['hide_input'].setValue(True)                
+
+        #     else:
+        #         checkbox.setText('Disabled')
+        #         checkbox = QCheckBox('Disabled')
+        #         if column == 1:
+        #             nuke.toNode(nod_nm)['disable'].setValue(False)
+        #         if column == 4:
+        #             nuke.toNode(nod_nm)['postage_stamp'].setValue(False)
+        #         if column == 7:
+        #             nuke.toNode(nod_nm)['bookmark'].setValue(False)
+        #         if column == 8:
+        #             nuke.toNode(nod_nm)['hide_input'].setValue(False) 
+
+ 
+
+
+    def get_sel_ui_nods_nm(self):
+        selected_items = self.table.selectedItems()
+
+        nod_nm_lst = []
+        for item in selected_items:
+            row = item.row()
+            column = item.column()
+
+            if column == 0:
+                nod_nm_lst.append(item.text())
+
+        return nod_nm_lst
 
     def set_chekckbox(self, bln, row_index, col):    
-            checkbox_widget = QWidget()
-            checkbox_layout = QHBoxLayout(checkbox_widget)
-            checkbox_layout.setContentsMargins(0,0,0,0)
-            checkbox_layout.setAlignment(Qt.AlignCenter)
+            # checkbox_widget = QWidget()
+            # checkbox_layout = QHBoxLayout(checkbox_widget)
+            # checkbox_layout.setContentsMargins(0,0,0,0)
+            # checkbox_layout.setAlignment(Qt.AlignCenter)
 
             changed_val_nod_nm = self.table.item(row_index, 0).text()
 
@@ -376,10 +626,12 @@ class NodeOperator(QWidget):
                 checkbox = QCheckBox('Disabled')
                 checkbox.setChecked(False)
 
+            # checkbox.stateChanged.connect(lambda state, r=row_index, c=col, cb=checkbox: self.update_checkbox_status(changed_val_nod_nm, r, c, cb, state, nodes_nm))
             checkbox.stateChanged.connect(lambda state, r=row_index, c=col, cb=checkbox: self.update_checkbox_status(changed_val_nod_nm, r, c, cb, state))
 
-            checkbox_layout.addWidget(checkbox)
-            self.table.setCellWidget(row_index, col, checkbox_widget)
+            # checkbox_layout.addWidget(checkbox)
+            # self.table.setCellWidget(row_index, col, checkbox_widget)
+            self.table.setCellWidget(row_index, col, checkbox)
 
     def update_node_value(self, nod_nm, c_row, c_col, c_val):
         nuke_node = nuke.toNode(nod_nm)
@@ -706,19 +958,23 @@ class NodeOperator(QWidget):
 
             self.set_nodes_count(nodes_len)
 
+            self.label_sel_nods_nm.setText('')
+
         else:
             nuke.message('Node Operator panel is empty \n Please Load nodes!')
                 
     def btn_selected_clear_clicked(self):
-        selected_items = self.table.selectedItems()
+        # selected_items = self.table.selectedItems()
 
-        remove_nod_nm_lst = []
-        for item in selected_items:
-            row = item.row()
-            column = item.column()
+        # remove_nod_nm_lst = []
+        # for item in selected_items:
+        #     row = item.row()
+        #     column = item.column()
 
-            if column == 0:
-                remove_nod_nm_lst.append(item.text())
+        #     if column == 0:
+        #         remove_nod_nm_lst.append(item.text())
+
+        remove_nod_nm_lst = self.get_sel_ui_nods_nm()
 
         if remove_nod_nm_lst:
             ui_nod_nm_lst = []
@@ -750,6 +1006,46 @@ class NodeOperator(QWidget):
             else:
                 self.btn_all_clear_clicked()
 
+    # def on_off_state_changed(self, state):
+    #     selected_items = self.table.selectedItems()
+
+    #     nod_nm_lst = []
+    #     for item in selected_items:
+    #         column = item.column()
+
+    #         if column == 0:
+    #             nod_nm_lst.append(item.text())
+
+    #     if state == 2:
+    #         bln = True
+    #     else:
+    #         bln = False
+
+    #     if nod_nm_lst:
+    #         nodes = []
+    #         for nod in nod_nm_lst:
+    #             nodes.append(nuke.toNode(nod))  
+
+    #         for nod in nodes:
+    #             if nod['disable']:
+    #                 nod['disable'].setValue(bln)
+
+    #         # self.btn_refresh_clicked()
+    #     selected_ranges= self.table.selectedRanges()
+    #     for selected_range in selected_ranges:
+    #         for row in range(selected_range.topRow(), selected_range.bottomRow() + 1):
+    #             cell_widget = self.table.cellWidget(row, 1)
+           
+    #             # if state:
+    #             #     cell_widget.setChecked(cell_widget.isChecked())
+    #             # else:
+    #             #     cell_widget.setChecked(not cell_widget.isChecked())
+
+    #             # lambda state, r=row_index, c=col, cb=checkbox: self.update_checkbox_status(changed_val_nod_nm, r, c, cb, state)
+    #             # self.update_checkbox_status(changed_val_nod_nm, r, c, cb, state)
+
+        
+
 
 def main():
     global window
@@ -765,3 +1061,4 @@ if __name__ == '__main__':
 
 
 
+  

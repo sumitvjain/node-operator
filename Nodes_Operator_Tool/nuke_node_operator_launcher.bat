@@ -10,5 +10,5 @@ REM Printing the path
 echo %NUKE_PATH%
 
 REM This is nuke launcher path
-"C:\Program Files\Nuke15.1v3\Nuke15.1.exe"
+"C:\Program Files\Nuke13.2v4\Nuke13.2.exe"
 

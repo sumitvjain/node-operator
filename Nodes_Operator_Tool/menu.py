@@ -4,7 +4,9 @@ import sys
 import nukescripts
 import node_operator_tool
 
+import imp
 
+imp.reload(node_operator_tool)
 
 
 # add_node_operation_panel()

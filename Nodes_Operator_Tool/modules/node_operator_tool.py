@@ -1,19 +1,47 @@
-from PySide2.QtWidgets import QWidget, QApplication,QFileDialog, QTableWidget, QHeaderView,QFrame,QAbstractItemView, QHBoxLayout, QVBoxLayout, QSizePolicy,QTableWidgetItem, QSpacerItem, QLabel, QLineEdit, QComboBox, QCheckBox, QPushButton
+from PySide2.QtWidgets import QWidget, QApplication, QInputDialog, QFileDialog, QTableWidget, QHeaderView,QFrame,QAbstractItemView, QHBoxLayout, QVBoxLayout, QSizePolicy,QTableWidgetItem, QSpacerItem, QLabel, QLineEdit, QComboBox, QCheckBox, QPushButton
 from PySide2.QtGui import QPixmap, QColor, QFont
 from PySide2.QtCore import QSize, Qt, QRect
 import sys, os
 import nuke
+import nukescripts
 import re
 import ast
 import json
+from datetime import datetime
 from pprint import pprint
+
+# Global Variable
 window = None
 
+# Relative path of icons dir assigned to variable
 dir_path = os.path.dirname(__file__)
 icons_dir_path = os.path.join(dir_path, 'icons')
 
 
+class ImportNodeInfoPanel(nukescripts.PythonPanel):
+    """
+    Custom panel for importing node information in Nuke.
+    Param:
+        file_items : List of file names to display in the enumeration knob.
+    """
+
+    def __init__(self, file_items):
+        super(ImportNodeInfoPanel, self).__init__('Selected Operator')
+
+        self.file_items = file_items
+        self.enumeration_knob = nuke.Enumeration_Knob('import_panel', 'Select File Name', self.file_items)
+        self.addKnob(self.enumeration_knob)
+
 class NodeOperator(QWidget):
+    """
+    Main UI class for managing and operation on Nuke nodes.
+    Attributes:
+       self.mainVlay (QVBoxLayout) : main layout of the widget. 
+       self.sel_nodes : List of the selected nodes.
+       self.nodes_data : Dictionary containing node data.
+       self.headers : List of table headers.
+    """
+
     def __init__(self, parent=None):
         super(NodeOperator, self).__init__(parent)
         self.mainVlay = QVBoxLayout()  
@@ -25,15 +53,15 @@ class NodeOperator(QWidget):
 
         self.set_ui_header()
         self.set_top_btn_widgets()
-        # self.configure_multi_ops()
         self.add_font_widget()
         self.add_table()
-        
-
+        self.set_author_name()        
         self.init()
-
-    # Signal & Slot
+  
     def init(self):
+        """
+        Initialize all signal-slot connections for UI interactions.
+        """
         self.btn_load.clicked.connect(self.btn_load_clicked)
         self.btn_add.clicked.connect(self.btn_add_clicked)
         self.btn_all.clicked.connect(self.btn_all_clicked)
@@ -51,10 +79,11 @@ class NodeOperator(QWidget):
         self.btn_refresh.clicked.connect(self.btn_refresh_clicked)
         self.btn_export.clicked.connect(self.btn_export_clicked)
         self.btn_import.clicked.connect(self.btn_import_clicked)
-        
-        
-
+                
     def set_ui_header(self):
+        """
+        Set up the header section of the UI with a title and description.
+        """
         self.headerHlay = QHBoxLayout()
 
         horizontalSpacer1 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
@@ -83,6 +112,10 @@ class NodeOperator(QWidget):
         self.mainVlay.addLayout(self.headerHlay)
         
     def set_top_btn_widgets(self):
+        """
+        Configures and adds the top button widgets..
+        Includes functionalities for searching nodes, importing/exporting data, and node management.
+        """
 
         self.hlay_1 = QHBoxLayout()
         self.search_line_edit = QLineEdit()
@@ -139,52 +172,24 @@ class NodeOperator(QWidget):
        
         self.mainVlay.addLayout(self.hlay_1)
 
-    # def configure_multi_ops(self):
-    #     self.multi_operation_HLay = QHBoxLayout()
-
-    #     self.btn_export = QPushButton('Export')
-    #     self.btn_import = QPushButton('Import')
-
-    #     multi_operation_spacer1 = QSpacerItem(2000, 10, QSizePolicy.Maximum)
-
-    #     self.ck_sel_on_off = QCheckBox('On/Off')
-    #     self.ck_sel_on_off.setChecked(False)
-    #     self.ck_sel_on_off.stateChanged.connect(self.on_off_state_changed)
-
-    #     self.ck_sel_thumbnail = QCheckBox('Thumbnail')
-    #     self.ck_sel_thumbnail.setChecked(False)
-
-    #     self.ck_sel_favorite = QCheckBox('Favorite')
-    #     self.ck_sel_favorite.setChecked(False)
-
-    #     self.ck_sel_hide_input = QCheckBox('Hide Input')
-    #     self.ck_sel_hide_input.setChecked(False)
-
-    #     multi_operation_spacer2 = QSpacerItem(2000, 10, QSizePolicy.Maximum)
-
-    #     self.cb_sel_colorspace = QComboBox()
-    #     self.cb_sel_localized = QComboBox()
-
-    #     self.multi_operation_HLay.addWidget(self.btn_export)
-    #     self.multi_operation_HLay.addWidget(self.btn_import)
-    #     self.multi_operation_HLay.addSpacerItem(multi_operation_spacer1)
-    #     self.multi_operation_HLay.addWidget(self.ck_sel_on_off)
-    #     self.multi_operation_HLay.addWidget(self.ck_sel_thumbnail)
-    #     self.multi_operation_HLay.addWidget(self.ck_sel_favorite)
-    #     self.multi_operation_HLay.addWidget(self.ck_sel_hide_input)
-    #     self.multi_operation_HLay.addSpacerItem(multi_operation_spacer2)
-    #     self.multi_operation_HLay.addWidget(self.cb_sel_colorspace)
-    #     self.multi_operation_HLay.addWidget(self.cb_sel_localized)
-        
-    #     self.mainVlay.addLayout(self.multi_operation_HLay)
-
     def add_font_widget(self):
+        """
+        configures and adds the font customization widgets.
+        Allows users to change font type, size and style for the selected nodes in the Node Operator Tool.
+        """
         self.fontHLay = QHBoxLayout()
+
+        # Node count labels
         self.label_nodes_added = QLabel('Nodes Added : ')    
         self.label_nodes_count = QLabel('')
-        self.label_nodes_selected_name = QLabel('Nodes Selected Name : ') 
-        self.label_sel_nods_nm = QLabel()
 
+        # Selected node name labels (hidden by default)
+        self.label_nodes_selected_name = QLabel('Nodes Selected Name : ') 
+        self.label_nodes_selected_name.setHidden(True)
+        self.label_sel_nods_nm = QLabel()
+        self.label_sel_nods_nm.setHidden(True)
+
+        # Font drop-down
         font_spacer = QSpacerItem(2000, 10, QSizePolicy.Maximum)
         self.font_combo = QComboBox()        
         fonts_data = nuke.getFonts()
@@ -194,6 +199,7 @@ class NodeOperator(QWidget):
         self.font_combo.addItems(all_fonts)
         self.font_combo.setCurrentText('Verdana')
 
+        # Bold button
         self.btn_bold = QPushButton('Bold')
         self.btn_bold.setIcon(QPixmap(os.path.join(icons_dir_path, 'bold_icon1.png')))
         self.btn_bold.setIconSize(QSize(12, 12))
@@ -202,6 +208,7 @@ class NodeOperator(QWidget):
         self.btn_bold.setChecked(False)    
         self.btn_bold.setToolTip('Text font will be bold for single or multiple selections in the Node Operator Tool.')    
 
+        # Italic button
         self.btn_italic = QPushButton('Italic')
         self.btn_italic.setIcon(QPixmap(os.path.join(icons_dir_path, 'italic_icon1.png')))
         self.btn_italic.setIconSize(QSize(12, 12))
@@ -210,19 +217,23 @@ class NodeOperator(QWidget):
         self.btn_italic.setChecked(False)
         self.btn_italic.setToolTip('Text font will be italic for single or multiple selections in the Node Operator Tool.') 
 
+        # Font size 
         self.font_size = QLineEdit('11')
         self.font_size.setMaximumWidth(30)
         self.font_size.setToolTip('Text font size will be set for single or multiple selections in the Node Operator Tool.') 
 
+        # Color button
         self.btn_color = QPushButton('Color')
         self.btn_color.setIcon(QPixmap(os.path.join(icons_dir_path, 'tile_color_icon.png')))
         self.btn_color.setMaximumWidth(75)
         self.btn_color.setToolTip('Node color will be set for single or multiple selections in the Node Operator Tool.') 
 
+        # Separator line
         self.separator = QFrame()
         self.separator.setFrameShape(QFrame.VLine)
         self.separator.setFrameShadow(QFrame.Sunken)
 
+        # Adding widget to the layout
         self.fontHLay.addWidget(self.label_nodes_added)
         self.fontHLay.addWidget(self.label_nodes_count)
         self.fontHLay.addWidget(self.separator)
@@ -239,7 +250,10 @@ class NodeOperator(QWidget):
         self.mainVlay.addLayout(self.fontHLay)
         
     def add_table(self):
-
+        """
+        Configures and adds the main table widget to the layout.
+        The table widget display information about nodes and allows for editing properties.
+        """
         self.table = QTableWidget()
         self.table.setColumnCount(10)
         self.headers = ['Node Name', 'On/Off', 'Mix', 'Label', 'Thumbnail', 'ColorSpace', 'Localized', 'Favorite', 'Hide Input', 'Lifetime']
@@ -254,45 +268,65 @@ class NodeOperator(QWidget):
 
         self.table.horizontalHeader().sectionResized.connect(self.adjust_combobox_widths)
 
-        # self.table.setSelectionMode(QAbstractItemView.MultiSelection)
-        # self.table.setSelectionBehavior(QAbstractItemView.SelectItems)
-
-        
-
-
         self.table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
-
         self.mainVlay.addWidget(self.table, stretch=1)
 
-        # print('=*='*10)
-        # for i in dir(self.table):
-        #     print(i)
-        # print('=*='*10)
+    def set_author_name(self):
+        """
+        Adds autor name lable at bottom layout, displaying tool version and update data.
+        """
+        self.author_name_Hlay = QHBoxLayout()
+        author_name_lbl = QLabel("Created by Sumit Saktepar [1.0.0] - Last update 27 Dec 2024")
+        author_name_font = QFont()
+        # author_name_font.setItalic(True)
+        author_name_font.setPointSize(10) 
+        author_name_lbl.setFont(author_name_font)
+        author_name_lbl.setStyleSheet("color: #696969;")
+
+        self.author_name_Hlay.addWidget(author_name_lbl)
+        self.mainVlay.addLayout(self.author_name_Hlay)
 
     def set_nodes_count(self, nodes_len):
+        """
+        Update the label displaying the number of added nodes in the Node Operator Tool.
+        Param:
+            nodes_len : selected nodes in nuke node graph (int value)
+        """
         self.label_nodes_count.setText(str(nodes_len))
 
     def set_row_count_to_ui(self, nodes_len):
+        """
+        Sets the row count to the table UI.
+        Param:
+            nodes_len : selected nodes in nuke node graph (int value)
+        """
         self.table.setRowCount(nodes_len)
-        print('row updated')
 
     def get_selected_node(self):
+        """
+        Gets the currently selected nodes in Nuke node graph.
+        """
         check_nodes_ = nuke.selectedNodes()
         if len(check_nodes_) > 0:
             self.sel_nodes = nuke.selectedNodes()
 
     def get_nodes_info(self, nodes):     
+        """
+        Gathers information about selected nodes including specific knob values.
+        Param:
+            nodes: List of nodes
+        """
 
+        # Dictionary to hold Nodes data.
         self.nodes_data = {}   
 
         for index, node in enumerate(nodes):
-
             node_name = node.name()
             if node_name not in self.nodes_data:
                 self.nodes_data[node_name] = {}
 
             for knob in node.allKnobs():
-
+                # Populate node data dictionary with specific knob values.
                 self.nodes_data[node_name]['node_name'] = node_name
             
                 if knob.name() == 'disable':
@@ -328,35 +362,23 @@ class NodeOperator(QWidget):
                   
     def set_ui_with_knobs(self, add_row=None):
         """
-        {'Read2': {'bookmark': False,
-                   'colorspace': 'default',
-                   'disable': False,
-                   'label': '',
-                   'lifetimeStart': 0.0,
-                   'localizationPolicy': 'fromAutoLocalizePath',
-                   'node_name': 'Read2',
-                   'postage_stamp': True},
-         'Roto1': {'bookmark': False,
-                   'disable': False,
-                   'hide_input': False,
-                   'label': '',
-                   'lifetimeStart': 0.0,
-                   'node_name': 'Roto1',
-                   'postage_stamp': False}
+        Update the UI with node information(specific knob values).
+        Param:
+            add_row : row index(int) Optional, if None then updates all rows.
         """
-
-
         all_node_names = self.nodes_data.keys()
 
-        sorted_all_node_names = sorted(all_node_names)
-        for row_index, node_nm in enumerate(sorted_all_node_names):
+        # sorted_all_node_names = sorted(all_node_names) Temporary off
+        for row_index, node_nm in enumerate(all_node_names):
 
             if add_row:
                row_index = add_row
 
+            # Set node name in the table (first column)
             node_nm_widget = QTableWidgetItem(node_nm)
             self.table.setItem(row_index, 0, node_nm_widget)
 
+            # Populate table cells with node knob values
             if 'disable' in self.nodes_data[node_nm]:           
                 bln = self.nodes_data[node_nm]['disable']
                 if bln:
@@ -367,7 +389,6 @@ class NodeOperator(QWidget):
             if 'mix' in self.nodes_data[node_nm]:
                 mix_widget = QTableWidgetItem(str(self.nodes_data[node_nm]['mix']))
                 self.table.setItem(row_index, 2, mix_widget)
-
 
             if 'label' in self.nodes_data[node_nm]:
                 label_widget = QTableWidgetItem(str(self.nodes_data[node_nm]['label']))
@@ -405,36 +426,60 @@ class NodeOperator(QWidget):
                 life_end = int(self.nodes_data[node_nm]['lifetimeEnd'])
                 lifetime_widget = QTableWidgetItem(f'{life_start}.{life_end}')
 
+                # Highlight if lifetime is not default
                 if life_start != 0 or life_end != 0:
                     lifetime_widget.setBackground(QColor(110, 106, 94))
                 self.table.setItem(row_index, 9, lifetime_widget)
-  
+
+            # Adjust row height
             self.table.setRowHeight(row_index, (row_index+2) * 16)
 
     def set_fit_to_screen(self, node_name):
+        """
+        Adjust the Nuke node graph to focus on the Node which is selected in UI.(if single selected)
+        Param:
+            node_name : single node name(str)
+        """
         node = nuke.toNode(node_name)
         xpos = node.xpos()
         ypos = node.ypos()
         nuke.zoom(1, [xpos + node.screenWidth() / 2, ypos + node.screenHeight() / 2])
 
-
     def selectNodes(self, sel_nods_nm):
-        
+        """
+        Select nodes in Nuke node graph based on the selected nodes names in UI
+        Param:
+            sel_nods_nm : List of selected node name in UI
+        """        
         for nod in nuke.allNodes():
             if nod.name() in sel_nods_nm:
                 nuke.toNode(nod.name()).setSelected(True)
             else:
                 nuke.toNode(nod.name()).setSelected(False)
 
+    def set_selection_nod_nm_Ui(self):
+        """
+        Update the UI selection to match the currently value of self.label_sel_nodes_nm (Default hidden widget)
+        """
+        nodes_name = self.label_sel_nods_nm.text()
+        print('nodes_name -- ', nodes_name)
+        for row in range(self.table.rowCount()):
+            item = self.table.item(row, 0)
+            node_nm = item.text()
+            if node_nm in nodes_name:            
+                item.setSelected(True)
+            else:
+                item.setSelected(False)                
+
     def cell_clicked(self):
-        
+        """
+        Handle cell click events in the table.
+        """
         items = self.table.selectedItems()
         if items:
             if items[0].column() == 0:
                 sel_nods_nm = []
                 for index, item in enumerate(items):        
-                    # print(index, item.text())
-                    # print(item.column(), item.text())
                     if item.column() == 0:
                         sel_nods_nm.append(item.text())
 
@@ -442,14 +487,24 @@ class NodeOperator(QWidget):
 
                 self.selectNodes(sel_nods_nm)
 
+
                 if len(sel_nods_nm) == 1:
                     self.set_fit_to_screen(sel_nods_nm[0])
 
+            if items[0].column() != 0:
+                self.set_selection_nod_nm_Ui()
+
     def update_checkbox_status(self, nod_nm, row, column, checkbox, state):
-        print('checkbox -- ', checkbox)
-
-        # if len(self.label_sel_nods_nm.text()) == 0:
-
+        """
+        Update the checkbox state acording to single or multiple selection in UI
+        Param:
+            node_nm : node name (str)
+            row : row index (int)
+            column: column index (int)
+            checkbox : checkbox widget instance
+            state : checkbox state (checked or unchecked)
+        """
+        # For single selection
         if state == Qt.Checked:
             checkbox.setText('Enabled')
             checkbox.setChecked(True)
@@ -461,11 +516,9 @@ class NodeOperator(QWidget):
                 nuke.toNode(nod_nm)['bookmark'].setValue(True)
             if column == 8:
                 nuke.toNode(nod_nm)['hide_input'].setValue(True)                
-
         else:
             checkbox.setText('Disabled')
             checkbox.setChecked(False)
-            # checkbox = QCheckBox('Disabled')
             if column == 1:
                 nuke.toNode(nod_nm)['disable'].setValue(False)
             if column == 4:
@@ -475,16 +528,10 @@ class NodeOperator(QWidget):
             if column == 8:
                 nuke.toNode(nod_nm)['hide_input'].setValue(False) 
  
-        # else:
+        # For multiple selection
         if not len(self.label_sel_nods_nm.text()) == 0:
             nodes_nm_str = self.label_sel_nods_nm.text()
             nods_nm_lst = ast.literal_eval(nodes_nm_str)
-
-            # print(nods_nm_lst, type(nods_nm_lst)) # ['Blur1', 'Blur10', 'Blur2', 'Blur5', 'Blur6']
-            # print('column -- ', column) # 1,4,7,8
-
-            # <PySide2.QtWidgets.QCheckBox(0x1d786e0d290) at 0x000001D782FC3980>
-            # <PySide2.QtWidgets.QCheckBox(0x1d78edaa270) at 0x000001D793F40800>
 
             if nods_nm_lst:                
                 for nm in nods_nm_lst:
@@ -504,7 +551,6 @@ class NodeOperator(QWidget):
                             nuke.toNode(nod_nm)['bookmark'].setValue(True)
                         if column == 8:
                             nuke.toNode(nod_nm)['hide_input'].setValue(True)                
-
                     else:
                         checkbox_item.setText('Disabled')
                         checkbox_item.setChecked(False)
@@ -518,126 +564,13 @@ class NodeOperator(QWidget):
                         if column == 8:
                             nuke.toNode(nod_nm)['hide_input'].setValue(False) 
 
-
-
-
-
-
-
-
-
-
-
-
-########################################################################################
-        # print('nod_nm -- ', nod_nm)
-        # print('row -- ', row)
-        # print('column -- ', column)
-        # print('checkbox -- ', checkbox)
-        # print('state -- ', state)
-        
-        # print(self.label_sel_nods_nm)
-        # print(type(self.label_sel_nods_nm))
-        # print('label_sel_nods_nm -- ', self.label_sel_nods_nm.text(), len(self.label_sel_nods_nm.text()))
-        
-
-        # selected_items = self.table.selectedItems()
-        # print('selected_items -- ', selected_items)
-
-        # node_nm_row_dict = {}
-        # for item in selected_items:
-        #     row = item.row()
-        #     column = item.column()
-        #     if column == 0:
-        #         node_nm_row_dict[item.text()] = row, column
-        # pprint(node_nm_row_dict)
-        
-
-        # # nodes_nm = self.get_sel_ui_nods_nm()
-
-        # selected_items = self.table.selectedItems()
-        # print('selected_items -- ', selected_items)
-        # # nod_nm_lst = []
-        # node_nm_row_dict = {}
-        # for item in selected_items:
-        #     row = item.row()
-        #     column = item.column()
-
-        #     if column == 0:
-        #         # nod_nm_lst.append(item.text())
-        #         node_nm_row_dict[item.text()] = row
-        # pprint(node_nm_row_dict)
-
-        # if node_nm_row_dict:
-        #     for nod_nm in node_nm_row_dict.keys():   
-        #         _row = node_nm_row_dict[nod_nm]
-        #         print('_row -- ', _row)
-        #         print('column -- ', column)
-        #         table_widget = self.table.item(_row, column) 
-        #         # print('type -- ', table_widget.Type)
-        #         # print('checkState -- ', table_widget.checkState())
-        #         # print('data -- ', table_widget.data())
-        #         # print('text -- ', table_widget.text())
-
-        #         if state == Qt.Checked:
-        #             # checkbox.setText('Enabled')
-        #             # checkbox.setChecked(True)
-        #             # table_widget.setText('Enabled')
-        #             # table_widget.setChecked(True)
-        #             if column == 1:
-        #                 nuke.toNode(nod_nm)['disable'].setValue(True)
-        #             if column == 4:
-        #                 nuke.toNode(nod_nm)['postage_stamp'].setValue(True)
-        #             if column == 7:
-        #                 nuke.toNode(nod_nm)['bookmark'].setValue(True)
-        #             if column == 8:
-        #                 nuke.toNode(nod_nm)['hide_input'].setValue(True)                
-
-        #         else:
-        #             # checkbox.setText('Disabled')
-        #             # checkbox = QCheckBox('Disabled')
-        #             # table_widget.setText('Disabled')
-        #             # table_widget.setChecked(False)
-
-        #             if column == 1:
-        #                 nuke.toNode(nod_nm)['disable'].setValue(False)
-        #             if column == 4:
-        #                 nuke.toNode(nod_nm)['postage_stamp'].setValue(False)
-        #             if column == 7:
-        #                 nuke.toNode(nod_nm)['bookmark'].setValue(False)
-        #             if column == 8:
-        #                 nuke.toNode(nod_nm)['hide_input'].setValue(False)    
-        # else:
-        #     if state == Qt.Checked:
-        #         checkbox.setText('Enabled')
-        #         checkbox.setChecked(True)
-        #         if column == 1:
-        #             nuke.toNode(nod_nm)['disable'].setValue(True)
-        #         if column == 4:
-        #             nuke.toNode(nod_nm)['postage_stamp'].setValue(True)
-        #         if column == 7:
-        #             nuke.toNode(nod_nm)['bookmark'].setValue(True)
-        #         if column == 8:
-        #             nuke.toNode(nod_nm)['hide_input'].setValue(True)                
-
-        #     else:
-        #         checkbox.setText('Disabled')
-        #         checkbox = QCheckBox('Disabled')
-        #         if column == 1:
-        #             nuke.toNode(nod_nm)['disable'].setValue(False)
-        #         if column == 4:
-        #             nuke.toNode(nod_nm)['postage_stamp'].setValue(False)
-        #         if column == 7:
-        #             nuke.toNode(nod_nm)['bookmark'].setValue(False)
-        #         if column == 8:
-        #             nuke.toNode(nod_nm)['hide_input'].setValue(False) 
-
- 
-
+        self.set_selection_nod_nm_Ui()
 
     def get_sel_ui_nods_nm(self):
+        """
+        Gets the neame of nodes currently selected in the table.
+        """
         selected_items = self.table.selectedItems()
-
         nod_nm_lst = []
         for item in selected_items:
             row = item.row()
@@ -649,46 +582,48 @@ class NodeOperator(QWidget):
         return nod_nm_lst
 
     def set_chekckbox(self, bln, row_index, col):    
-            # checkbox_widget = QWidget()
-            # checkbox_layout = QHBoxLayout(checkbox_widget)
-            # checkbox_layout.setContentsMargins(0,0,0,0)
-            # checkbox_layout.setAlignment(Qt.AlignCenter)
-
+            """
+            Create and set a checkbox widget in the table for specific row and column.
+            Param:
+                bln : Boolean(True/False)
+                row_index : row index (int)
+                col : col index (int)
+            """
             changed_val_nod_nm = self.table.item(row_index, 0).text()
-
             if bln:
                 checkbox = QCheckBox('Enabled')
                 checkbox.setChecked(True)
             else:
                 checkbox = QCheckBox('Disabled')
                 checkbox.setChecked(False)
-
             # checkbox.stateChanged.connect(lambda state, r=row_index, c=col, cb=checkbox: self.update_checkbox_status(changed_val_nod_nm, r, c, cb, state, nodes_nm))
             checkbox.stateChanged.connect(lambda state, r=row_index, c=col, cb=checkbox: self.update_checkbox_status(changed_val_nod_nm, r, c, cb, state))
-
-            # checkbox_layout.addWidget(checkbox)
-            # self.table.setCellWidget(row_index, col, checkbox_widget)
             self.table.setCellWidget(row_index, col, checkbox)
 
     def update_node_value(self, nod_nm, c_row, c_col, c_val):
+        """
+        Updae a specific value of nodes knob in Nuke node graph based on table input.
+        Param : 
+            nod_nm : node name (str)
+            c_row : row index (int)
+            c_col : column index (int)
+            c_val : value for set
+        """
         nuke_node = nuke.toNode(nod_nm)
-        
+        print('c_col -- ', c_col)
         if c_col == 0:
             pass
-
         elif c_col == 1:
-            pass
-
+            pass        
         elif c_col == 2: # mix
             if 'mix' in nuke_node.knobs():
                  nuke_node['mix'].setValue(float(c_val))
-
+            else:
+                print('mix knob not found')
         elif c_col == 3: # label
             if 'label' in nuke_node.knobs():
                 nuke_node['label'].setValue(c_val)
-
         elif c_col == 9: # lift time
-
             if 'lifetimeStart' in nuke_node.knobs():              
                 life_start = int(c_val.split('.')[0])
                 life_end = int(c_val.split('.')[-1])
@@ -698,11 +633,9 @@ class NodeOperator(QWidget):
                 if life_start != 0 or life_end != 0:
                     nuke_node['useLifetime'].setValue(True)
                     lifetime_widget = self.table.item(c_row, c_col)
-                    lifetime_widget.setBackground(QColor(110, 106, 94))  
-                    
+                    lifetime_widget.setBackground(QColor(110, 106, 94))                     
                 else:
                     nuke_node['useLifetime'].setValue(False)
-
         elif c_col == 5: #
             if 'colorspace' in nuke_node.knobs():
                 nuke_node['colorspace'].setValue(c_val)
@@ -710,35 +643,49 @@ class NodeOperator(QWidget):
         elif c_col == 6:
             if 'localizationPolicy' in nuke_node.knobs():
                 nuke_node['localizationPolicy'].setValue(c_val)
-
         else:
             pass     
 
     def on_cell_changed(self, row, column):
+        """
+        This is callback func for cell selection change in table
+        Param:
+            row : int value
+            column : int value 
+        """
         item = self.table.item(row, column)
         if item:
             changed_row = row
             changed_column =  column
             changed_value = item.text()
+            print('changed_value -- ', changed_value)
+
             changed_val_nod_nm = self.table.item(row, 0).text()
             self.update_node_value(changed_val_nod_nm, changed_row, changed_column, changed_value)
 
-    def lock_first_last(self):       
+    def lock_first_last(self):   
+        """
+        Lock editing for the first columns of the table
+        """    
         for row in range(self.table.rowCount()):
             read_item = self.table.item(row, 0)
             read_item.setFlags(read_item.flags() & ~Qt.ItemIsEditable)
 
-            lifetime_item = self.table.item(row, 9)
+            # lifetime_item = self.table.item(row, 9)
             # lifetime_item.setFlags(lifetime_item.flags() & ~Qt.ItemIsEditable)
 
     def colorspace_index_changed(self, combo_box, col):
-        # print('combo_box ============= ', dir(combo_box))
-        
-
+        """
+        This func for color space ComboBox index changed.
+        Param:
+            combo_box : QComboBox instance whose value changed.
+            col : column index (int)
+        """
         combo_cur_text = combo_box.currentText()
         changed_row = None
         changed_column = None
 
+        # Find row and column of the combobox
         for row in range(self.table.rowCount()):
             for column in range(self.table.columnCount()):
                 if self.table.cellWidget(row, column) == combo_box:
@@ -761,26 +708,33 @@ class NodeOperator(QWidget):
                     self.update_node_value(nm, row, col, combo_cur_text)
 
                     combobox_item.setCurrentText(combo_cur_text)
-                    # print('dir combobox_item -- ', dir(combobox_item))
-                    # 'setCurrentIndex',
-                    #     'setCurrentText',
-
-
 
     def adjust_combobox_width(self, row, column):
-        """Adjust ComboBox width to fit the column size."""
+        """
+        Adjust ComboBox width to fit the column size.
+        """
         widget = self.table.cellWidget(row, column)
         if isinstance(widget, QComboBox):
             column_width = self.table.columnWidth(column)
             widget.setFixedWidth(column_width)
 
     def adjust_combobox_widths(self):
-            """Adjust all ComboBoxes in the table."""
-            for row in range(self.table.rowCount()):
-                for column in range(self.table.columnCount()):
-                    self.adjust_combobox_width(row, column)
+        """
+        Adjust all ComboBoxes in the table(in bulk).
+        """
+        for row in range(self.table.rowCount()):
+            for column in range(self.table.columnCount()):
+                self.adjust_combobox_width(row, column)
 
     def set_combo_companies(self, node_nm, knob_nm, row_index, col):
+            """
+            Set up a ComboBox for color space and localize policy.
+            Param:
+                node_nm : node name (str)
+                knob_nm : nuke node knob name
+                row_index : row index (int)
+                col : column index (int)
+            """
             self.colorspace_combobox = QComboBox()
                  
             values = nuke.toNode(node_nm)[knob_nm].values()
@@ -788,19 +742,20 @@ class NodeOperator(QWidget):
             self.table.setCellWidget(row_index, col, self.colorspace_combobox)
 
             self.adjust_combobox_width(row_index, col)
-            # col_width = self.table.columnWidth(col)  
-            # comb_widget = self.table.cellWidget(row_index, col) 
-            # comb_widget.setFixedWidth(col_width)
             
+            # Set value
             value = nuke.toNode(node_nm)[knob_nm].value()
             index = self.colorspace_combobox.findText(str(value), Qt.MatchFixedString)
             self.colorspace_combobox.setCurrentIndex(index)
 
+            # Connect comboBox to its handler
             # self.colorspace_combobox.currentIndexChanged.connect(lambda state, r=row_index, c=col: self.colorspace_index_changed(r, c, state))
             self.colorspace_combobox.currentIndexChanged.connect(lambda text, c=col, combo_box=self.colorspace_combobox: self.colorspace_index_changed(combo_box, c))
 
     def btn_load_clicked(self):
-
+        """
+        This is callback func to populate the table with selected nodes information.
+        """
         self.sel_nodes = None
         self.get_selected_node()
 
@@ -821,8 +776,10 @@ class NodeOperator(QWidget):
         self.btn_add.setEnabled(True)
         self.btn_export.setEnabled(True)
         
-
-    def btn_add_clicked(self):        
+    def btn_add_clicked(self):  
+        """
+        This is callback func for add/append in table with selected nodes
+        """      
         nodes = nuke.selectedNodes()
         add_count = 0
         for index, node in enumerate(nodes):
@@ -838,6 +795,13 @@ class NodeOperator(QWidget):
         self.set_nodes_count(str(nodes_len))
 
     def check_node_in_table(self, node):
+        """
+        Check if a node is already present in the table.
+        Param:
+            node : Nuke node object
+        return : 
+            bool : True if the node is not in the table, False otherwise.
+        """
         all_node_names = []
         for row in range(self.table.rowCount()):
             fst_column_data = self.table.item(row, 0)
@@ -849,12 +813,21 @@ class NodeOperator(QWidget):
             return True
 
     def add_new_node(self, index, node):
+        """
+        Add a new row to the table for the selected node.
+        Param : 
+            index :
+        return : 
+            The index of the newly added row(int).
+        """
         current_row_count = self.table.rowCount()
         self.table.insertRow(current_row_count)
         return current_row_count
         
     def btn_all_clicked(self):
-
+        """
+        This is callback func to populate the UI with all nodes.
+        """
         self.btn_all.setEnabled(False)
         self.btn_all_clear_clicked()
 
@@ -872,6 +845,9 @@ class NodeOperator(QWidget):
         self.btn_export.setEnabled(True)
 
     def btn_all_clear_clicked(self):
+        """
+        Clear the table and reset UI for a fresh start.
+        """
         self.table.clearContents()
         self.table.setRowCount(0)
         self.table.setColumnCount(10)
@@ -880,6 +856,7 @@ class NodeOperator(QWidget):
         self.btn_export.setEnabled(False)
         
     def edited_search_line(self, text):
+        """Highlight rows in the table matching the search query."""
         self.table.setCurrentItem(None)
         if not text:
             return
@@ -889,6 +866,7 @@ class NodeOperator(QWidget):
                 item.setSelected(True)
 
     def changed_font_size(self, size):
+        """Update the font size of selected items in UI."""
         if not size:
             return
 
@@ -907,6 +885,7 @@ class NodeOperator(QWidget):
                 nuke.message('Please select Node Names in Node Operator UI')
         
     def btn_color_clicked(self):
+        """Change the tile color of selected items in UI."""
         sel_items = self.table.selectedItems()
         sel_item_nm = []
 
@@ -922,6 +901,7 @@ class NodeOperator(QWidget):
                         nuke.toNode(node_nm)['tile_color'].setValue(usr_sel_color) 
 
     def font_changed(self, font_nm):
+        """Update the font of selected items in UI."""
         if not font_nm:
             return
 
@@ -940,6 +920,7 @@ class NodeOperator(QWidget):
                 nuke.message('Please select Node Names in Node Operator UI')
 
     def update_text_pattern(self, bold=None, sel_item_nm=None):
+        """Update text style (bold/regular) for selected items in UI."""
 
         for node_nm in sel_item_nm:
             if nuke.toNode(node_nm):     
@@ -949,6 +930,7 @@ class NodeOperator(QWidget):
                     nuke.toNode(node_nm)['note_font'].setValue("")
 
     def btn_bold_clicked(self):
+        """Toggle bold font style for selected items in UI."""
         sel_items = self.table.selectedItems()
         sel_item_nm = []
 
@@ -965,7 +947,7 @@ class NodeOperator(QWidget):
                 nuke.message('Please select Node Names in Node Operator UI')
 
     def update_italic_pattern(self, italic=None, sel_item_nm=None):
-
+        """Update text style (italic/regular) for selected items in UI."""
         for node_nm in sel_item_nm:
             if nuke.toNode(node_nm):     
                 if italic:
@@ -976,6 +958,7 @@ class NodeOperator(QWidget):
                     nuke.toNode(node_nm)['note_font'].setValue("")
 
     def btn_italic_clicked(self):
+        """Toggle italic font style for selected items in UI."""
         sel_items = self.table.selectedItems()
         sel_item_nm = []
 
@@ -992,6 +975,7 @@ class NodeOperator(QWidget):
                 nuke.message('Please select Node Names in Node Operator UI')
 
     def get_life_frame_range(self):
+        """Prompt user for a frame range input and validate it."""
         frame_range = nuke.getInput('Please Enter frame-range \n example 1009.1050')
         if not '.' in frame_range:
             nuke.message('Invalid frame-range \n Please try again')
@@ -1007,6 +991,7 @@ class NodeOperator(QWidget):
             return True, start_frame, end_frame
 
     def on_cellDoubleClicked(self, row, column):
+        """Handle double-click on a cell to update frame range."""
         if column == 9:
             bln, start_frame, end_frame = self.get_life_frame_range()
             if bln:
@@ -1018,6 +1003,7 @@ class NodeOperator(QWidget):
                 self.update_node_value(changed_val_nod_nm, row, column, [start_frame, end_frame])
 
     def btn_refresh_clicked(self):
+        """Refresh UI to synchronize with current node state."""
         ui_nod_nm_lst = []
         for row in range(self.table.rowCount()):
             node_nm = self.table.item(row, 0).text()
@@ -1045,16 +1031,7 @@ class NodeOperator(QWidget):
             nuke.message('Node Operator panel is empty \n Please Load nodes!')
                 
     def btn_selected_clear_clicked(self):
-        # selected_items = self.table.selectedItems()
-
-        # remove_nod_nm_lst = []
-        # for item in selected_items:
-        #     row = item.row()
-        #     column = item.column()
-
-        #     if column == 0:
-        #         remove_nod_nm_lst.append(item.text())
-
+        """Remove selected nodes from the UI."""
         remove_nod_nm_lst = self.get_sel_ui_nods_nm()
 
         if remove_nod_nm_lst:
@@ -1090,119 +1067,100 @@ class NodeOperator(QWidget):
         if not self.table.rowCount() == 0:
             print('self.table.rowCount() -- ', self.table.rowCount())
             self.btn_export.setEnabled(True)
-
-    # def on_off_state_changed(self, state):
-    #     selected_items = self.table.selectedItems()
-
-    #     nod_nm_lst = []
-    #     for item in selected_items:
-    #         column = item.column()
-
-    #         if column == 0:
-    #             nod_nm_lst.append(item.text())
-
-    #     if state == 2:
-    #         bln = True
-    #     else:
-    #         bln = False
-
-    #     if nod_nm_lst:
-    #         nodes = []
-    #         for nod in nod_nm_lst:
-    #             nodes.append(nuke.toNode(nod))  
-
-    #         for nod in nodes:
-    #             if nod['disable']:
-    #                 nod['disable'].setValue(bln)
-
-    #         # self.btn_refresh_clicked()
-    #     selected_ranges= self.table.selectedRanges()
-    #     for selected_range in selected_ranges:
-    #         for row in range(selected_range.topRow(), selected_range.bottomRow() + 1):
-    #             cell_widget = self.table.cellWidget(row, 1)
-           
-    #             # if state:
-    #             #     cell_widget.setChecked(cell_widget.isChecked())
-    #             # else:
-    #             #     cell_widget.setChecked(not cell_widget.isChecked())
-
-    #             # lambda state, r=row_index, c=col, cb=checkbox: self.update_checkbox_status(changed_val_nod_nm, r, c, cb, state)
-    #             # self.update_checkbox_status(changed_val_nod_nm, r, c, cb, state)
-
-        
-
+    
     def btn_export_clicked(self):
-        # self.path_to_export = QFileDialog.getOpenFileName()
-        # self.path_to_export = QFileDialog.getSaveFileName()
-        # print('self.path_to_export -- ', self.path_to_export)
-
+        """Export node information to a JSON file."""
         all_ui_nod_nm_lst = []
         for row in range(self.table.rowCount()):
             node_nm = self.table.item(row, 0).text()
-            all_ui_nod_nm_lst.append(node_nm)
+            all_ui_nod_nm_lst.append(node_nm)  
 
-        if all_ui_nod_nm_lst:
-            file_dialog = QFileDialog()
-            save_file_path, _ = file_dialog.getSaveFileName(self, "Export content", "", "JSON (*.json)")  # Extract the file path
+        if all_ui_nod_nm_lst:                   
+            file_nm, ok = QInputDialog.getText(self,'Node Export Dialog', 'Enter File Name : ')
 
-            if save_file_path:  # Ensure the user didn't cancel the dialog
-                print('save_file_path -- ', save_file_path)
-                try:
-                    with open(save_file_path, 'w') as json_file:
-                        json.dump(all_ui_nod_nm_lst, json_file, indent=4)
-                    nuke.message(f"Node information saved to : {save_file_path}")
-                except Exception as e:
-                    nuke.message(f"Failed to save file: {e}")
-            else:
-                nuke.message("Save operation was canceled.")
+            if ok:
+                if not file_nm:
+                    self.btn_export_clicked()
+                else:
+                    home_dir = os.path.expanduser("~")
+                    current_datetime = datetime.now()
+                    formatted_datetime = current_datetime.strftime("%Y-%m-%d %H-%M-%S")
+                    # formatted_datetime_new = formatted_datetime.replace(" ", "-")
+                    export_path = os.path.join(home_dir, '.nuke', 'node_operator_data', f"{formatted_datetime}_{file_nm}" )
+           
+                        
+                    if export_path:  # Ensure the user didn't cancel the dialog
+                        print('export_path -- ', export_path)
+                        os.makedirs(os.path.dirname(export_path), exist_ok=True)
+                        
+                        try:
+                            with open(export_path, 'w') as json_file:
+                                json.dump(all_ui_nod_nm_lst, json_file, indent=4)
+                            nuke.message(f"Node information saved to : {export_path}")
+                        except Exception as e:
+                            nuke.message(f"Failed to save file: {e}")
+                    else:
+                        nuke.message("Save operation was canceled.")               
+        
+
 
     def btn_import_clicked(self):
-        file_dialog = QFileDialog()
-        path_to_import, _  = file_dialog.getOpenFileName(self, "Import content", "", "JSON (*.json)")
+        """Import node information from a JSON file."""
+        home_dir = os.path.expanduser("~")
+        import_path = os.path.join(home_dir, '.nuke', 'node_operator_data')
 
-        data = None
-        if path_to_import:
-            try:
-                with open(path_to_import, 'r') as f:
-                    data = json.load(f)
-                    print('data -- ', data)
-            except Exception as e:
-                    nuke.message(f"Error reading JSON file: {e}")
+        file_items = os.listdir(import_path)
+        if file_items:
 
-        print('data -- ', data)
-        if data:
+            panel = ImportNodeInfoPanel(file_items)
+            if panel.showModalDialog():
+                selected_value = panel.enumeration_knob.value()
+                print("Selected Option:", selected_value)
+                import_file_path = os.path.join(import_path, selected_value)
 
-            all_nuke_nod_nm = []
-            for nuke_nod in nuke.allNodes():
-                all_nuke_nod_nm.append(nuke_nod.name())
+                data = None
+                if os.path.exists(import_file_path):
+                    try:
+                        with open(import_file_path, 'r') as f:
+                            data = json.load(f)
+                            print('data -- ', data)
+                    except Exception as e:
+                            nuke.message(f"Error reading JSON file: {e}")
 
-            new_nod_nm_data = []
-            for nod_nm in data:
-                if nod_nm in all_nuke_nod_nm:
-                    new_nod_nm_data.append(nod_nm)
+                    all_nuke_nod_nm = []
+                    for nuke_nod in nuke.allNodes():
+                        all_nuke_nod_nm.append(nuke_nod.name())
 
+                    new_nod_nm_data = []
+                    for nod_nm in data:
+                        if nod_nm in all_nuke_nod_nm:
+                            new_nod_nm_data.append(nod_nm)
 
-            if new_nod_nm_data:
+                    if new_nod_nm_data:
+                        self.btn_all_clear_clicked()
+                        nodes_len = len(new_nod_nm_data)
+                        self.set_row_count_to_ui(nodes_len)
 
-                self.btn_all_clear_clicked()
+                        nodes = []
+                        for nod_nm in new_nod_nm_data:
+                            nodes.append(nuke.toNode(nod_nm))
 
-                nodes_len = len(new_nod_nm_data)
-                self.set_row_count_to_ui(nodes_len)
+                        self.get_nodes_info(nodes)
+                        self.set_ui_with_knobs()
+                        self.lock_first_last()
 
-                nodes = []
-                for nod_nm in new_nod_nm_data:
-                    nodes.append(nuke.toNode(nod_nm))
+                        self.set_nodes_count(nodes_len)
+                    else:
+                        nuke.message('Please Select Nodes')
+                    self.btn_add.setEnabled(True)
+                    self.btn_export.setEnabled(True)
+                else:
+                    print('Path does not exists -- ', import_file_path)
 
-                self.get_nodes_info(nodes)
-                self.set_ui_with_knobs()
-                self.lock_first_last()
-
-                self.set_nodes_count(nodes_len)
             else:
-                nuke.message('Please Select Nodes')
-            self.btn_add.setEnabled(True)
-            self.btn_export.setEnabled(True)
-
+                print("Panel operation was canceled.")            
+        else:
+            nuke.message("Exported node information does not exist.")
 
 
 

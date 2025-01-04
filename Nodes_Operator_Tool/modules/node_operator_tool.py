@@ -1,4 +1,5 @@
-from PySide2.QtWidgets import QWidget, QApplication, QInputDialog, QFileDialog, QTableWidget, QHeaderView,QFrame,QAbstractItemView, QHBoxLayout, QVBoxLayout, QSizePolicy,QTableWidgetItem, QSpacerItem, QLabel, QLineEdit, QComboBox, QCheckBox, QPushButton
+from PySide2.QtWidgets import QWidget, QApplication, QInputDialog, QFileDialog, QTableWidget, QHeaderView,QFrame,QAbstractItemView
+from PySide2.QtWidgets import QHBoxLayout, QVBoxLayout, QSizePolicy,QTableWidgetItem, QSpacerItem, QLabel, QLineEdit, QComboBox, QCheckBox, QPushButton
 from PySide2.QtGui import QPixmap, QColor, QFont
 from PySide2.QtCore import QSize, Qt, QRect
 import sys, os
@@ -36,7 +37,7 @@ class NodeOperator(QWidget):
     """
     Main UI class for managing and operation on Nuke nodes.
     Attributes:
-       self.mainVlay (QVBoxLayout) : main layout of the widget. 
+       self.main_v_lay (QVBoxLayout) : main layout of the widget. 
        self.sel_nodes : List of the selected nodes.
        self.nodes_data : Dictionary containing node data.
        self.headers : List of table headers.
@@ -44,8 +45,8 @@ class NodeOperator(QWidget):
 
     def __init__(self, parent=None):
         super(NodeOperator, self).__init__(parent)
-        self.mainVlay = QVBoxLayout()  
-        self.setLayout(self.mainVlay)
+        self.main_v_lay = QVBoxLayout()  
+        self.setLayout(self.main_v_lay)
 
         self.sel_nodes = None
         self.nodes_data = {}
@@ -74,7 +75,7 @@ class NodeOperator(QWidget):
         self.btn_bold.clicked.connect(self.btn_bold_clicked)
         self.btn_italic.clicked.connect(self.btn_italic_clicked)
         self.table.cellChanged.connect(self.on_cell_changed)
-        self.table.cellDoubleClicked.connect(self.on_cellDoubleClicked)
+        self.table.cellDoubleClicked.connect(self.on_cell_double_clicked)
         self.table.cellClicked.connect(self.cell_clicked)
         self.btn_refresh.clicked.connect(self.btn_refresh_clicked)
         self.btn_export.clicked.connect(self.btn_export_clicked)
@@ -84,16 +85,16 @@ class NodeOperator(QWidget):
         """
         Set up the header section of the UI with a title and description.
         """
-        self.headerHlay = QHBoxLayout()
+        self.header_h_lay = QHBoxLayout()
 
-        horizontalSpacer1 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        horizontal_spacer_1 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
 
-        headerLabel = QLabel('NODE OPERATOR')
+        header_label = QLabel('NODE OPERATOR')
         header_font = QFont()
         header_font.setBold(True)
         header_font.setPointSize(14)
-        headerLabel.setFont(header_font)
-        headerLabel.setStyleSheet("color: #555555;")
+        header_label.setFont(header_font)
+        header_label.setStyleSheet("color: #555555;")
         
         description_label = QLabel(" -  Streamline node management")
         description_font = QFont()
@@ -102,14 +103,14 @@ class NodeOperator(QWidget):
         description_label.setFont(description_font)
         description_label.setStyleSheet("color: #696969;")
 
-        horizontalSpacer2 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        horizontal_spacer_2 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
 
-        self.headerHlay.addSpacerItem(horizontalSpacer1)
-        self.headerHlay.addWidget(headerLabel)
-        self.headerHlay.addWidget(description_label)
-        self.headerHlay.addSpacerItem(horizontalSpacer2)
+        self.header_h_lay.addSpacerItem(horizontal_spacer_1)
+        self.header_h_lay.addWidget(header_label)
+        self.header_h_lay.addWidget(description_label)
+        self.header_h_lay.addSpacerItem(horizontal_spacer_2)
 
-        self.mainVlay.addLayout(self.headerHlay)
+        self.main_v_lay.addLayout(self.header_h_lay)
         
     def set_top_btn_widgets(self):
         """
@@ -170,7 +171,7 @@ class NodeOperator(QWidget):
         self.hlay_1.addWidget(self.btn_selected_clear)
         self.hlay_1.addWidget(self.btn_all_clear)
        
-        self.mainVlay.addLayout(self.hlay_1)
+        self.main_v_lay.addLayout(self.hlay_1)
 
     def add_font_widget(self):
         """
@@ -247,7 +248,7 @@ class NodeOperator(QWidget):
         self.fontHLay.addWidget(self.separator)
         self.fontHLay.addWidget(self.btn_color)
 
-        self.mainVlay.addLayout(self.fontHLay)
+        self.main_v_lay.addLayout(self.fontHLay)
         
     def add_table(self):
         """
@@ -269,7 +270,7 @@ class NodeOperator(QWidget):
         self.table.horizontalHeader().sectionResized.connect(self.adjust_combobox_widths)
 
         self.table.verticalHeader().setSectionResizeMode(QHeaderView.ResizeToContents)
-        self.mainVlay.addWidget(self.table, stretch=1)
+        self.main_v_lay.addWidget(self.table, stretch=1)
 
     def set_author_name(self):
         """
@@ -284,7 +285,7 @@ class NodeOperator(QWidget):
         author_name_lbl.setStyleSheet("color: #696969;")
 
         self.author_name_Hlay.addWidget(author_name_lbl)
-        self.mainVlay.addLayout(self.author_name_Hlay)
+        self.main_v_lay.addLayout(self.author_name_Hlay)
 
     def set_nodes_count(self, nodes_len):
         """
@@ -370,7 +371,6 @@ class NodeOperator(QWidget):
 
         # sorted_all_node_names = sorted(all_node_names) Temporary off
         for row_index, node_nm in enumerate(all_node_names):
-
             if add_row:
                row_index = add_row
 
@@ -445,7 +445,7 @@ class NodeOperator(QWidget):
         ypos = node.ypos()
         nuke.zoom(1, [xpos + node.screenWidth() / 2, ypos + node.screenHeight() / 2])
 
-    def selectNodes(self, sel_nods_nm):
+    def select_nuke_nodes(self, sel_nods_nm):
         """
         Select nodes in Nuke node graph based on the selected nodes names in UI
         Param:
@@ -485,8 +485,7 @@ class NodeOperator(QWidget):
 
                 self.label_sel_nods_nm.setText(f'{sel_nods_nm}')
 
-                self.selectNodes(sel_nods_nm)
-
+                self.select_nuke_nodes(sel_nods_nm)
 
                 if len(sel_nods_nm) == 1:
                     self.set_fit_to_screen(sel_nods_nm[0])
@@ -535,7 +534,6 @@ class NodeOperator(QWidget):
 
             if nods_nm_lst:                
                 for nm in nods_nm_lst:
-
                     item = self.table.findItems(nm, Qt.MatchExactly)
                     row = item[0].row()
                     checkbox_item = self.table.cellWidget(row, column)
@@ -581,7 +579,7 @@ class NodeOperator(QWidget):
 
         return nod_nm_lst
 
-    def set_chekckbox(self, bln, row_index, col):    
+    def set_chekckbox(self, is_check, row_index, col):    
             """
             Create and set a checkbox widget in the table for specific row and column.
             Param:
@@ -590,7 +588,7 @@ class NodeOperator(QWidget):
                 col : col index (int)
             """
             changed_val_nod_nm = self.table.item(row_index, 0).text()
-            if bln:
+            if is_check:
                 checkbox = QCheckBox('Enabled')
                 checkbox.setChecked(True)
             else:
@@ -600,49 +598,49 @@ class NodeOperator(QWidget):
             checkbox.stateChanged.connect(lambda state, r=row_index, c=col, cb=checkbox: self.update_checkbox_status(changed_val_nod_nm, r, c, cb, state))
             self.table.setCellWidget(row_index, col, checkbox)
 
-    def update_node_value(self, nod_nm, c_row, c_col, c_val):
+    def update_node_value(self, nod_nm, index_row, index_column, input_value):
         """
         Updae a specific value of nodes knob in Nuke node graph based on table input.
         Param : 
             nod_nm : node name (str)
-            c_row : row index (int)
-            c_col : column index (int)
-            c_val : value for set
+            index_row : row index (int)
+            index_column : column index (int)
+            input_value : value for set
         """
         nuke_node = nuke.toNode(nod_nm)
-        print('c_col -- ', c_col)
-        if c_col == 0:
+        print('index_column -- ', index_column)
+        if index_column == 0:
             pass
-        elif c_col == 1:
+        elif index_column == 1:
             pass        
-        elif c_col == 2: # mix
+        elif index_column == 2: # mix
             if 'mix' in nuke_node.knobs():
-                 nuke_node['mix'].setValue(float(c_val))
+                 nuke_node['mix'].setValue(float(input_value))
             else:
                 print('mix knob not found')
-        elif c_col == 3: # label
+        elif index_column == 3: # label
             if 'label' in nuke_node.knobs():
-                nuke_node['label'].setValue(c_val)
-        elif c_col == 9: # lift time
+                nuke_node['label'].setValue(input_value)
+        elif index_column == 9: # lift time
             if 'lifetimeStart' in nuke_node.knobs():              
-                life_start = int(c_val.split('.')[0])
-                life_end = int(c_val.split('.')[-1])
+                life_start = int(input_value.split('.')[0])
+                life_end = int(input_value.split('.')[-1])
                 nuke_node['lifetimeStart'].setValue(life_start)
                 nuke_node['lifetimeEnd'].setValue(life_end)     
                 
                 if life_start != 0 or life_end != 0:
                     nuke_node['useLifetime'].setValue(True)
-                    lifetime_widget = self.table.item(c_row, c_col)
+                    lifetime_widget = self.table.item(index_row, index_column)
                     lifetime_widget.setBackground(QColor(110, 106, 94))                     
                 else:
                     nuke_node['useLifetime'].setValue(False)
-        elif c_col == 5: #
+        elif index_column == 5: #
             if 'colorspace' in nuke_node.knobs():
-                nuke_node['colorspace'].setValue(c_val)
+                nuke_node['colorspace'].setValue(input_value)
 
-        elif c_col == 6:
+        elif index_column == 6:
             if 'localizationPolicy' in nuke_node.knobs():
-                nuke_node['localizationPolicy'].setValue(c_val)
+                nuke_node['localizationPolicy'].setValue(input_value)
         else:
             pass     
 
@@ -670,9 +668,6 @@ class NodeOperator(QWidget):
         for row in range(self.table.rowCount()):
             read_item = self.table.item(row, 0)
             read_item.setFlags(read_item.flags() & ~Qt.ItemIsEditable)
-
-            # lifetime_item = self.table.item(row, 9)
-            # lifetime_item.setFlags(lifetime_item.flags() & ~Qt.ItemIsEditable)
 
     def colorspace_index_changed(self, combo_box, col):
         """
@@ -748,8 +743,6 @@ class NodeOperator(QWidget):
             index = self.colorspace_combobox.findText(str(value), Qt.MatchFixedString)
             self.colorspace_combobox.setCurrentIndex(index)
 
-            # Connect comboBox to its handler
-            # self.colorspace_combobox.currentIndexChanged.connect(lambda state, r=row_index, c=col: self.colorspace_index_changed(r, c, state))
             self.colorspace_combobox.currentIndexChanged.connect(lambda text, c=col, combo_box=self.colorspace_combobox: self.colorspace_index_changed(combo_box, c))
 
     def btn_load_clicked(self):
@@ -990,7 +983,7 @@ class NodeOperator(QWidget):
         else:
             return True, start_frame, end_frame
 
-    def on_cellDoubleClicked(self, row, column):
+    def on_cell_double_clicked(self, row, column):
         """Handle double-click on a cell to update frame range."""
         if column == 9:
             bln, start_frame, end_frame = self.get_life_frame_range()
@@ -1054,13 +1047,10 @@ class NodeOperator(QWidget):
                 nodes = []
                 for nod in nod_nm_lst_for_add:
                     nodes.append(nuke.toNode(nod))    
-
                 self.get_nodes_info(nodes)
                 self.set_ui_with_knobs()
                 self.lock_first_last()
-
                 self.set_nodes_count(nodes_len)
-
             else:
                 self.btn_all_clear_clicked()
 

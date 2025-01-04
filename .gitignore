@@ -2,4 +2,6 @@
 
 backup.py
 *__pycache__/
+**/__pycache__
 introducing_the_tool
+test.py
